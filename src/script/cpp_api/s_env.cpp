@@ -22,7 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "common/c_converter.h"
 #include "log.h"
 #include "environment.h"
-#include "mapgen.h"
+#include "mapgen/mapgen.h"
 #include "lua_api/l_env.h"
 #include "server.h"
 
@@ -54,7 +54,9 @@ void ScriptApiEnv::environment_Step(float dtime)
 	try {
 		runCallbacks(1, RUN_CALLBACKS_MODE_FIRST);
 	} catch (LuaError &e) {
-		getServer()->setAsyncFatalError(e.what());
+		getServer()->setAsyncFatalError(
+				std::string("environment_Step: ") + e.what() + "\n"
+				+ script_get_backtrace(L));
 	}
 }
 
@@ -75,7 +77,9 @@ void ScriptApiEnv::player_event(ServerActiveObject *player, const std::string &t
 	try {
 		runCallbacks(2, RUN_CALLBACKS_MODE_FIRST);
 	} catch (LuaError &e) {
-		getServer()->setAsyncFatalError(e.what());
+		getServer()->setAsyncFatalError(
+				std::string("player_event: ") + e.what() + "\n"
+				+ script_get_backtrace(L) );
 	}
 }
 
@@ -104,7 +108,7 @@ void ScriptApiEnv::initializeEnvironment(ServerEnvironment *env)
 		int id = lua_tonumber(L, -2);
 		int current_abm = lua_gettop(L);
 
-		std::set<std::string> trigger_contents;
+		std::vector<std::string> trigger_contents;
 		lua_getfield(L, current_abm, "nodenames");
 		if (lua_istable(L, -1)) {
 			int table = lua_gettop(L);
@@ -112,16 +116,16 @@ void ScriptApiEnv::initializeEnvironment(ServerEnvironment *env)
 			while (lua_next(L, table)) {
 				// key at index -2 and value at index -1
 				luaL_checktype(L, -1, LUA_TSTRING);
-				trigger_contents.insert(lua_tostring(L, -1));
+				trigger_contents.emplace_back(readParam<std::string>(L, -1));
 				// removes value, keeps key for next iteration
 				lua_pop(L, 1);
 			}
 		} else if (lua_isstring(L, -1)) {
-			trigger_contents.insert(lua_tostring(L, -1));
+			trigger_contents.emplace_back(readParam<std::string>(L, -1));
 		}
 		lua_pop(L, 1);
 
-		std::set<std::string> required_neighbors;
+		std::vector<std::string> required_neighbors;
 		lua_getfield(L, current_abm, "neighbors");
 		if (lua_istable(L, -1)) {
 			int table = lua_gettop(L);
@@ -129,12 +133,12 @@ void ScriptApiEnv::initializeEnvironment(ServerEnvironment *env)
 			while (lua_next(L, table)) {
 				// key at index -2 and value at index -1
 				luaL_checktype(L, -1, LUA_TSTRING);
-				required_neighbors.insert(lua_tostring(L, -1));
+				required_neighbors.emplace_back(readParam<std::string>(L, -1));
 				// removes value, keeps key for next iteration
 				lua_pop(L, 1);
 			}
 		} else if (lua_isstring(L, -1)) {
-			required_neighbors.insert(lua_tostring(L, -1));
+			required_neighbors.emplace_back(readParam<std::string>(L, -1));
 		}
 		lua_pop(L, 1);
 
@@ -181,12 +185,12 @@ void ScriptApiEnv::initializeEnvironment(ServerEnvironment *env)
 			while (lua_next(L, table)) {
 				// key at index -2 and value at index -1
 				luaL_checktype(L, -1, LUA_TSTRING);
-				trigger_contents.insert(lua_tostring(L, -1));
+				trigger_contents.insert(readParam<std::string>(L, -1));
 				// removes value, keeps key for next iteration
 				lua_pop(L, 1);
 			}
 		} else if (lua_isstring(L, -1)) {
-			trigger_contents.insert(lua_tostring(L, -1));
+			trigger_contents.insert(readParam<std::string>(L, -1));
 		}
 		lua_pop(L, 1);
 
@@ -212,11 +216,13 @@ void ScriptApiEnv::on_emerge_area_completion(
 {
 	Server *server = getServer();
 
+	// This function should be executed with envlock held.
+	// The caller (LuaEmergeAreaCallback in src/script/lua_api/l_env.cpp)
+	// should have obtained the lock.
 	// Note that the order of these locks is important!  Envlock must *ALWAYS*
 	// be acquired before attempting to acquire scriptlock, or else ServerThread
 	// will try to acquire scriptlock after it already owns envlock, thus
 	// deadlocking EmergeThread and ServerThread
-	MutexAutoLock envlock(server->m_env_mutex);
 
 	SCRIPTAPI_PRECHECKHEADER
 
@@ -235,7 +241,9 @@ void ScriptApiEnv::on_emerge_area_completion(
 	try {
 		PCALL_RES(lua_pcall(L, 4, 0, error_handler));
 	} catch (LuaError &e) {
-		server->setAsyncFatalError(e.what());
+		server->setAsyncFatalError(
+				std::string("on_emerge_area_completion: ") + e.what() + "\n"
+				+ script_get_backtrace(L));
 	}
 
 	lua_pop(L, 1); // Pop error handler

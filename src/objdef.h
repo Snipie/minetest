@@ -17,14 +17,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef OBJDEF_HEADER
-#define OBJDEF_HEADER
+#pragma once
 
 #include "util/basic_macros.h"
 #include "porting.h"
 
 class IGameDef;
-class INodeDefManager;
+class NodeDefManager;
 
 #define OBJDEF_INVALID_INDEX ((u32)(-1))
 #define OBJDEF_INVALID_HANDLE 0
@@ -44,7 +43,7 @@ enum ObjDefType {
 
 class ObjDef {
 public:
-	virtual ~ObjDef() {}
+	virtual ~ObjDef() = default;
 
 	u32 index;
 	u32 uid;
@@ -59,6 +58,7 @@ class ObjDefManager {
 public:
 	ObjDefManager(IGameDef *gamedef, ObjDefType type);
 	virtual ~ObjDefManager();
+	DISABLE_CLASS_COPY(ObjDefManager);
 
 	virtual const char *getObjectTitle() const { return "ObjDef"; }
 
@@ -80,7 +80,7 @@ public:
 
 	size_t getNumObjects() const { return m_objects.size(); }
 	ObjDefType getType() const { return m_objtype; }
-	INodeDefManager *getNodeDef() const { return m_ndef; }
+	const NodeDefManager *getNodeDef() const { return m_ndef; }
 
 	u32 validateHandle(ObjDefHandle handle) const;
 	static ObjDefHandle createHandle(u32 index, ObjDefType type, u32 uid);
@@ -88,12 +88,7 @@ public:
 		ObjDefType *type, u32 *uid);
 
 protected:
-	INodeDefManager *m_ndef;
+	const NodeDefManager *m_ndef;
 	std::vector<ObjDef *> m_objects;
 	ObjDefType m_objtype;
-
-private:
-	DISABLE_CLASS_COPY(ObjDefManager);
 };
-
-#endif

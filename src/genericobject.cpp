@@ -40,7 +40,7 @@ std::string gob_cmd_update_position(
 	v3f position,
 	v3f velocity,
 	v3f acceleration,
-	f32 yaw,
+	v3f rotation,
 	bool do_interpolate,
 	bool is_movement_end,
 	f32 update_interval
@@ -49,26 +49,26 @@ std::string gob_cmd_update_position(
 	// command
 	writeU8(os, GENERIC_CMD_UPDATE_POSITION);
 	// pos
-	writeV3F1000(os, position);
+	writeV3F32(os, position);
 	// velocity
-	writeV3F1000(os, velocity);
+	writeV3F32(os, velocity);
 	// acceleration
-	writeV3F1000(os, acceleration);
-	// yaw
-	writeF1000(os, yaw);
+	writeV3F32(os, acceleration);
+	// rotation
+	writeV3F32(os, rotation);
 	// do_interpolate
 	writeU8(os, do_interpolate);
 	// is_end_position (for interpolation)
 	writeU8(os, is_movement_end);
 	// update_interval (for interpolation)
-	writeF1000(os, update_interval);
+	writeF32(os, update_interval);
 	return os.str();
 }
 
 std::string gob_cmd_set_texture_mod(const std::string &mod)
 {
 	std::ostringstream os(std::ios::binary);
-	// command 
+	// command
 	writeU8(os, GENERIC_CMD_SET_TEXTURE_MOD);
 	// parameters
 	os<<serializeString(mod);
@@ -95,7 +95,7 @@ std::string gob_cmd_set_sprite(
 std::string gob_cmd_punched(s16 damage, s16 result_hp)
 {
 	std::ostringstream os(std::ios::binary);
-	// command 
+	// command
 	writeU8(os, GENERIC_CMD_PUNCHED);
 	// damage
 	writeS16(os, damage);
@@ -109,19 +109,18 @@ std::string gob_cmd_update_armor_groups(const ItemGroupList &armor_groups)
 	std::ostringstream os(std::ios::binary);
 	writeU8(os, GENERIC_CMD_UPDATE_ARMOR_GROUPS);
 	writeU16(os, armor_groups.size());
-	for(ItemGroupList::const_iterator i = armor_groups.begin();
-			i != armor_groups.end(); ++i){
-		os<<serializeString(i->first);
-		writeS16(os, i->second);
+	for (const auto &armor_group : armor_groups) {
+		os<<serializeString(armor_group.first);
+		writeS16(os, armor_group.second);
 	}
 	return os.str();
 }
 
 std::string gob_cmd_update_physics_override(float physics_override_speed, float physics_override_jump,
-		float physics_override_gravity, bool sneak, bool sneak_glitch)
+		float physics_override_gravity, bool sneak, bool sneak_glitch, bool new_move)
 {
 	std::ostringstream os(std::ios::binary);
-	// command 
+	// command
 	writeU8(os, GENERIC_CMD_SET_PHYSICS_OVERRIDE);
 	// parameters
 	writeF1000(os, physics_override_speed);
@@ -130,13 +129,14 @@ std::string gob_cmd_update_physics_override(float physics_override_speed, float 
 	// these are sent inverted so we get true when the server sends nothing
 	writeU8(os, !sneak);
 	writeU8(os, !sneak_glitch);
+	writeU8(os, !new_move);
 	return os.str();
 }
 
 std::string gob_cmd_update_animation(v2f frames, float frame_speed, float frame_blend, bool frame_loop)
 {
 	std::ostringstream os(std::ios::binary);
-	// command 
+	// command
 	writeU8(os, GENERIC_CMD_SET_ANIMATION);
 	// parameters
 	writeV2F1000(os, frames);
@@ -147,10 +147,21 @@ std::string gob_cmd_update_animation(v2f frames, float frame_speed, float frame_
 	return os.str();
 }
 
-std::string gob_cmd_update_bone_position(std::string bone, v3f position, v3f rotation)
+std::string gob_cmd_update_animation_speed(float frame_speed)
 {
 	std::ostringstream os(std::ios::binary);
-	// command 
+	// command
+	writeU8(os, GENERIC_CMD_SET_ANIMATION_SPEED);
+	// parameters
+	writeF1000(os, frame_speed);
+	return os.str();
+}
+
+std::string gob_cmd_update_bone_position(const std::string &bone, v3f position,
+		v3f rotation)
+{
+	std::ostringstream os(std::ios::binary);
+	// command
 	writeU8(os, GENERIC_CMD_SET_BONE_POSITION);
 	// parameters
 	os<<serializeString(bone);
@@ -159,10 +170,11 @@ std::string gob_cmd_update_bone_position(std::string bone, v3f position, v3f rot
 	return os.str();
 }
 
-std::string gob_cmd_update_attachment(int parent_id, std::string bone, v3f position, v3f rotation)
+std::string gob_cmd_update_attachment(int parent_id, const std::string &bone,
+		v3f position, v3f rotation)
 {
 	std::ostringstream os(std::ios::binary);
-	// command 
+	// command
 	writeU8(os, GENERIC_CMD_ATTACH_TO);
 	// parameters
 	writeS16(os, parent_id);
@@ -180,5 +192,18 @@ std::string gob_cmd_update_nametag_attributes(video::SColor color)
 	// parameters
 	writeU8(os, 1); // version for forward compatibility
 	writeARGB8(os, color);
+	return os.str();
+}
+
+std::string gob_cmd_update_infant(u16 id, u8 type,
+		const std::string &client_initialization_data)
+{
+	std::ostringstream os(std::ios::binary);
+	// command
+	writeU8(os, GENERIC_CMD_SPAWN_INFANT);
+	// parameters
+	writeU16(os, id);
+	writeU8(os, type);
+	os<<serializeLongString(client_initialization_data);
 	return os.str();
 }

@@ -17,8 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ACTIVEOBJECT_HEADER
-#define ACTIVEOBJECT_HEADER
+#pragma once
 
 #include "irr_aabb3d.h"
 #include <string>
@@ -28,9 +27,9 @@ enum ActiveObjectType {
 	ACTIVEOBJECT_TYPE_TEST = 1,
 // Deprecated stuff
 	ACTIVEOBJECT_TYPE_ITEM = 2,
-	ACTIVEOBJECT_TYPE_RAT = 3,
-	ACTIVEOBJECT_TYPE_OERKKI1 = 4,
-	ACTIVEOBJECT_TYPE_FIREFLY = 5,
+//	ACTIVEOBJECT_TYPE_RAT = 3,
+//	ACTIVEOBJECT_TYPE_OERKKI1 = 4,
+//	ACTIVEOBJECT_TYPE_FIREFLY = 5,
 	ACTIVEOBJECT_TYPE_MOBV2 = 6,
 // End deprecated stuff
 	ACTIVEOBJECT_TYPE_LUAENTITY = 7,
@@ -43,7 +42,7 @@ enum ActiveObjectType {
 
 struct ActiveObjectMessage
 {
-	ActiveObjectMessage(u16 id_, bool reliable_=true, std::string data_=""):
+	ActiveObjectMessage(u16 id_, bool reliable_=true, const std::string &data_ = "") :
 		id(id_),
 		reliable(reliable_),
 		datastring(data_)
@@ -64,8 +63,8 @@ public:
 		m_id(id)
 	{
 	}
-	
-	u16 getId()
+
+	u16 getId() const
 	{
 		return m_id;
 	}
@@ -76,11 +75,29 @@ public:
 	}
 
 	virtual ActiveObjectType getType() const = 0;
-	virtual bool getCollisionBox(aabb3f *toset) = 0;
-	virtual bool collideWithObjects() = 0;
+
+
+	/*!
+	 * Returns the collision box of the object.
+	 * This box is translated by the object's
+	 * location.
+	 * The box's coordinates are world coordinates.
+	 * @returns true if the object has a collision box.
+	 */
+	virtual bool getCollisionBox(aabb3f *toset) const = 0;
+
+
+	/*!
+	 * Returns the selection box of the object.
+	 * This box is not translated when the
+	 * object moves.
+	 * The box's coordinates are world coordinates.
+	 * @returns true if the object has a selection box.
+	 */
+	virtual bool getSelectionBox(aabb3f *toset) const = 0;
+
+
+	virtual bool collideWithObjects() const = 0;
 protected:
 	u16 m_id; // 0 is invalid, "no id"
 };
-
-#endif
-

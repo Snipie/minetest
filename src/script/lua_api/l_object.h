@@ -17,8 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef L_OBJECT_H_
-#define L_OBJECT_H_
+#pragma once
 
 #include "lua_api/l_base.h"
 #include "irrlichttypes.h"
@@ -26,28 +25,40 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 class ServerActiveObject;
 class LuaEntitySAO;
 class PlayerSAO;
-class Player;
+class RemotePlayer;
 
 /*
 	ObjectRef
 */
 
 class ObjectRef : public ModApiBase {
-private:
-	ServerActiveObject *m_object;
-
-	static const char className[];
-	static const luaL_reg methods[];
 public:
+	ObjectRef(ServerActiveObject *object);
+
+	~ObjectRef() = default;
+
+	// Creates an ObjectRef and leaves it on top of stack
+	// Not callable from Lua; all references are created on the C side.
+	static void create(lua_State *L, ServerActiveObject *object);
+
+	static void set_null(lua_State *L);
+
+	static void Register(lua_State *L);
+
 	static ObjectRef *checkobject(lua_State *L, int narg);
 
 	static ServerActiveObject* getobject(ObjectRef *ref);
 private:
+	ServerActiveObject *m_object = nullptr;
+	static const char className[];
+	static luaL_Reg methods[];
+
+
 	static LuaEntitySAO* getluaobject(ObjectRef *ref);
 
 	static PlayerSAO* getplayersao(ObjectRef *ref);
 
-	static Player* getplayer(ObjectRef *ref);
+	static RemotePlayer *getplayer(ObjectRef *ref);
 
 	// Exported functions
 
@@ -57,15 +68,15 @@ private:
 	// remove(self)
 	static int l_remove(lua_State *L);
 
-	// getpos(self)
+	// get_pos(self)
 	// returns: {x=num, y=num, z=num}
-	static int l_getpos(lua_State *L);
+	static int l_get_pos(lua_State *L);
 
-	// setpos(self, pos)
-	static int l_setpos(lua_State *L);
+	// set_pos(self, pos)
+	static int l_set_pos(lua_State *L);
 
-	// moveto(self, pos, continuous=false)
-	static int l_moveto(lua_State *L);
+	// move_to(self, pos, continuous=false)
+	static int l_move_to(lua_State *L);
 
 	// punch(self, puncher, time_from_last_punch, tool_capabilities, dir)
 	static int l_punch(lua_State *L);
@@ -105,7 +116,7 @@ private:
 	static int l_get_armor_groups(lua_State *L);
 
 	// set_physics_override(self, physics_override_speed, physics_override_jump,
-	//                      physics_override_gravity, sneak, sneak_glitch)
+	//                      physics_override_gravity, sneak, sneak_glitch, new_move)
 	static int l_set_physics_override(lua_State *L);
 
 	// get_physics_override(self)
@@ -113,6 +124,9 @@ private:
 
 	// set_animation(self, frame_range, frame_speed, frame_blend, frame_loop)
 	static int l_set_animation(lua_State *L);
+
+	// set_animation_frame_speed(self, frame_speed)
+	static int l_set_animation_frame_speed(lua_State *L);
 
 	// get_animation(self)
 	static int l_get_animation(lua_State *L);
@@ -143,30 +157,42 @@ private:
 
 	/* LuaEntitySAO-only */
 
-	// setvelocity(self, {x=num, y=num, z=num})
-	static int l_setvelocity(lua_State *L);
+	// set_velocity(self, {x=num, y=num, z=num})
+	static int l_set_velocity(lua_State *L);
 
-	// getvelocity(self)
-	static int l_getvelocity(lua_State *L);
+	// add_velocity(self, {x=num, y=num, z=num})
+	static int l_add_velocity(lua_State *L);
 
-	// setacceleration(self, {x=num, y=num, z=num})
-	static int l_setacceleration(lua_State *L);
+	// get_velocity(self)
+	static int l_get_velocity(lua_State *L);
 
-	// getacceleration(self)
-	static int l_getacceleration(lua_State *L);
+	// set_acceleration(self, {x=num, y=num, z=num})
+	static int l_set_acceleration(lua_State *L);
 
-	// setyaw(self, radians)
-	static int l_setyaw(lua_State *L);
+	// get_acceleration(self)
+	static int l_get_acceleration(lua_State *L);
 
-	// getyaw(self)
-	static int l_getyaw(lua_State *L);
+	// set_rotation(self, {x=num, y=num, z=num})
+	static int l_set_rotation(lua_State *L);
 
-	// settexturemod(self, mod)
-	static int l_settexturemod(lua_State *L);
+	// get_rotation(self)
+	static int l_get_rotation(lua_State *L);
 
-	// setsprite(self, p={x=0,y=0}, num_frames=1, framelength=0.2,
+	// set_yaw(self, radians)
+	static int l_set_yaw(lua_State *L);
+
+	// get_yaw(self)
+	static int l_get_yaw(lua_State *L);
+
+	// set_texture_mod(self, mod)
+	static int l_set_texture_mod(lua_State *L);
+
+	// l_get_texture_mod(self)
+	static int l_get_texture_mod(lua_State *L);
+
+	// set_sprite(self, p={x=0,y=0}, num_frames=1, framelength=0.2,
 	//           select_horiz_by_yawpitch=false)
-	static int l_setsprite(lua_State *L);
+	static int l_set_sprite(lua_State *L);
 
 	// DEPRECATED
 	// get_entity_name(self)
@@ -223,11 +249,26 @@ private:
 	// get_breath(self, breath)
 	static int l_get_breath(lua_State *L);
 
+	// set_attribute(self, attribute, value)
+	static int l_set_attribute(lua_State *L);
+
+	// get_attribute(self, attribute)
+	static int l_get_attribute(lua_State *L);
+
+	// get_meta(self)
+	static int l_get_meta(lua_State *L);
+
 	// set_inventory_formspec(self, formspec)
 	static int l_set_inventory_formspec(lua_State *L);
 
 	// get_inventory_formspec(self) -> formspec
 	static int l_get_inventory_formspec(lua_State *L);
+
+	// set_formspec_prepend(self, formspec)
+	static int l_set_formspec_prepend(lua_State *L);
+
+	// get_formspec_prepend(self) -> formspec
+	static int l_get_formspec_prepend(lua_State *L);
 
 	// get_player_control(self)
 	static int l_get_player_control(lua_State *L);
@@ -274,11 +315,17 @@ private:
 	// hud_get_hotbar_selected_image(self)
 	static int l_hud_get_hotbar_selected_image(lua_State *L);
 
-	// set_sky(self, type, list)
+	// set_sky(self, bgcolor, type, list, clouds = true)
 	static int l_set_sky(lua_State *L);
 
-	// get_sky(self, type, list)
+	// get_sky(self)
 	static int l_get_sky(lua_State *L);
+
+	// set_clouds(self, {density=, color=, ambient=, height=, thickness=, speed=})
+	static int l_set_clouds(lua_State *L);
+
+	// get_clouds(self)
+	static int l_get_clouds(lua_State *L);
 
 	// override_day_night_ratio(self, type)
 	static int l_override_day_night_ratio(lua_State *L);
@@ -304,18 +351,4 @@ private:
 	// get_nametag_attributes(self)
 	static int l_get_nametag_attributes(lua_State *L);
 
-public:
-	ObjectRef(ServerActiveObject *object);
-
-	~ObjectRef();
-
-	// Creates an ObjectRef and leaves it on top of stack
-	// Not callable from Lua; all references are created on the C side.
-	static void create(lua_State *L, ServerActiveObject *object);
-
-	static void set_null(lua_State *L);
-
-	static void Register(lua_State *L);
 };
-
-#endif /* L_OBJECT_H_ */

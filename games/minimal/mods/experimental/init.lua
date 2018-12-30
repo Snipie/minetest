@@ -2,6 +2,8 @@
 -- Experimental things
 --
 
+dofile(minetest.get_modpath("experimental").."/modchannels.lua")
+
 -- For testing random stuff
 
 experimental = {}
@@ -28,7 +30,7 @@ minetest.after(1.0, switch_player_visual)
 ]]
 
 minetest.register_node("experimental:soundblock", {
-	tile_images = {"unknown_node.png", "default_tnt_bottom.png",
+	tiles = {"unknown_node.png", "default_tnt_bottom.png",
 			"default_tnt_side.png", "default_tnt_side.png",
 			"default_tnt_side.png", "default_tnt_side.png"},
 	inventory_image = minetest.inventorycube("unknown_node.png",
@@ -86,17 +88,17 @@ function on_step(dtime)
 	experimental.t1 = experimental.t1 + dtime
 	if experimental.t1 >= 2 then
 		experimental.t1 = experimental.t1 - 2
-		minetest.log("time of day is "..minetest.get_timeofday())
+		minetest.log("verbose", "time of day is "..minetest.get_timeofday())
 		if experimental.day then
-			minetest.log("forcing day->night")
+			minetest.log("verbose", "forcing day->night")
 			experimental.day = false
 			minetest.set_timeofday(0.0)
 		else
-			minetest.log("forcing night->day")
+			minetest.log("verbose", "forcing night->day")
 			experimental.day = true
 			minetest.set_timeofday(0.5)
 		end
-		minetest.log("time of day is "..minetest.get_timeofday())
+		minetest.log("verbose", "time of day is "..minetest.get_timeofday())
 	end
 	--]]
 end
@@ -120,7 +122,7 @@ minetest.register_craft({
 })
 
 minetest.register_node("experimental:tnt", {
-	tile_images = {"default_tnt_top.png", "default_tnt_bottom.png",
+	tiles = {"default_tnt_top.png", "default_tnt_bottom.png",
 			"default_tnt_side.png", "default_tnt_side.png",
 			"default_tnt_side.png", "default_tnt_side.png"},
 	inventory_image = minetest.inventorycube("default_tnt_top.png",
@@ -135,7 +137,7 @@ minetest.register_on_punchnode(function(p, node)
 	if node.name == "experimental:tnt" then
 		minetest.remove_node(p)
 		minetest.add_entity(p, "experimental:tnt")
-		nodeupdate(p)
+		minetest.check_for_falling(p)
 	end
 end)
 
@@ -226,7 +228,7 @@ minetest.register_entity("experimental:dummyball", {
 	phasetimer = 0,
 
 	on_activate = function(self, staticdata)
-		minetest.log("Dummyball activated!")
+		minetest.log("action", "Dummyball activated!")
 	end,
 
 	on_step = function(self, dtime)
@@ -317,6 +319,9 @@ minetest.register_entity("experimental:testentity", {
 		self.object:remove()
 		hitter:add_to_inventory('craft testobject1 1')
 	end,
+	on_death = function(self, killer)
+		print("testentity.on_death")
+	end
 })
 
 --
@@ -398,11 +403,11 @@ minetest.register_abm({
         if ncpos ~= nil then
             return
         end
-       
+
         if pos.x % 16 ~= 8 or pos.z % 16 ~= 8 then
             return
         end
-       
+
         pos.y = pos.y + 1
         n = minetest.get_node(pos)
         print(dump(n))
@@ -431,7 +436,7 @@ minetest.register_abm({
                 return
             end
             nctime = clock
-           
+
             s0 = ncstuff[ncq]
             ncq = s0[1]
             s1 = ncstuff[ncq]
@@ -453,7 +458,7 @@ minetest.register_abm({
 
 minetest.register_node("experimental:tester_node_1", {
 	description = "Tester Node 1 (construct/destruct/timer)",
-	tile_images = {"wieldhand.png"},
+	tiles = {"wieldhand.png"},
 	groups = {oddly_breakable_by_hand=2},
 	sounds = default.node_sound_wood_defaults(),
 	-- This was known to cause a bug in minetest.item_place_node() when used
@@ -477,15 +482,15 @@ minetest.register_node("experimental:tester_node_1", {
 			experimental.print_to_everything("incorrect metadata found")
 		end
 	end,
-       
+
 	on_destruct = function(pos)
 		experimental.print_to_everything("experimental:tester_node_1:on_destruct("..minetest.pos_to_string(pos)..")")
 	end,
- 
+
 	after_destruct = function(pos)
 		experimental.print_to_everything("experimental:tester_node_1:after_destruct("..minetest.pos_to_string(pos)..")")
 	end,
- 
+
 	after_dig_node = function(pos, oldnode, oldmetadata, digger)
 		experimental.print_to_everything("experimental:tester_node_1:after_dig_node("..minetest.pos_to_string(pos)..")")
 	end,
@@ -496,16 +501,73 @@ minetest.register_node("experimental:tester_node_1", {
 	end,
 })
 
+minetest.register_node("experimental:tiled", {
+        description = "Tiled stone",
+        tiles = {{
+                name = "experimental_tiled.png",
+                align_style = "world",
+                scale = 8,
+        }},
+        groups = {cracky=2},
+})
+
+stairs.register_stair_and_slab("tiled_n", "experimental:tiled",
+		{cracky=2},
+		{{name="experimental_tiled.png", align_style="node", scale=8}},
+		"Tiled stair (node-aligned)",
+		"Tiled slab (node-aligned)")
+
+stairs.register_stair_and_slab("tiled", "experimantal:tiled",
+		{cracky=2},
+		{{name="experimental_tiled.png", align_style="world", scale=8}},
+		"Tiled stair",
+		"Tiled slab")
+
+minetest.register_craft({
+	output = 'experimental:tiled 4',
+	recipe = {
+		{'default:cobble', '', 'default:cobble'},
+		{'', '', ''},
+		{'default:cobble', '', 'default:cobble'},
+	}
+})
+
+minetest.register_craft({
+	output = 'stairs:stair_tiled',
+	recipe = {{'stairs:stair_tiled_n'}}
+})
+
+minetest.register_craft({
+	output = 'stairs:stair_tiled_n',
+	recipe = {{'stairs:stair_tiled'}}
+})
+
+minetest.register_craft({
+	output = 'stairs:slab_tiled',
+	recipe = {{'stairs:slab_tiled_n'}}
+})
+
+minetest.register_craft({
+	output = 'stairs:slab_tiled_n',
+	recipe = {{'stairs:slab_tiled'}}
+})
+
 minetest.register_craftitem("experimental:tester_tool_1", {
 	description = "Tester Tool 1",
 	inventory_image = "experimental_tester_tool_1.png",
     on_use = function(itemstack, user, pointed_thing)
 		--print(dump(pointed_thing))
 		if pointed_thing.type == "node" then
-			if minetest.get_node(pointed_thing.under).name == "experimental:tester_node_1" then
+			local node = minetest.get_node(pointed_thing.under)
+			if node.name == "experimental:tester_node_1" or node.name == "default:chest" then
 				local p = pointed_thing.under
 				minetest.log("action", "Tester tool used at "..minetest.pos_to_string(p))
-				minetest.dig_node(p)
+				if node.name == "experimental:tester_node_1" then
+					minetest.dig_node(p)
+				else
+					minetest.get_meta(p):mark_as_private({"infotext", "formspec"})
+					minetest.chat_send_player(user:get_player_name(), "Verify that chest is unusable now.")
+				end
 			else
 				local p = pointed_thing.above
 				minetest.log("action", "Tester tool used at "..minetest.pos_to_string(p))
@@ -520,6 +582,71 @@ minetest.register_craft({
 	recipe = {
 		{'group:crumbly'},
 		{'group:crumbly'},
+	}
+})
+
+minetest.register_craftitem("experimental:tester_tool_2", {
+	description = "Tester Tool 2",
+	inventory_image = "experimental_tester_tool_1.png^[invert:g",
+	on_use = function(itemstack, user, pointed_thing)
+		local pos = minetest.get_pointed_thing_position(pointed_thing, true)
+		if pos == nil then return end
+		pos = vector.add(pos, {x=0, y=0.5, z=0})
+		local tex, anim
+		if math.random(0, 1) == 0 then
+			tex = "default_lava_source_animated.png"
+			anim = {type="sheet_2d", frames_w=3, frames_h=2, frame_length=0.5}
+		else
+			tex = "default_lava_flowing_animated.png"
+			anim = {type="vertical_frames", aspect_w=16, aspect_h=16, length=3.3}
+		end
+
+		minetest.add_particle({
+			pos = pos,
+			velocity = {x=0, y=0, z=0},
+			acceleration = {x=0, y=0.04, z=0},
+			expirationtime = 6,
+			collisiondetection = true,
+			texture = tex,
+			animation = anim,
+			size = 4,
+			glow = math.random(0, 5),
+		})
+	end,
+})
+
+-- Test the disable_repair=1 group
+minetest.register_tool("experimental:unrepairable_tool", {
+	description = "Unrepairable Tool",
+	wield_image = "default_stone.png",
+	inventory_image = "default_stone.png",
+	tool_capabilities = {
+		groupcaps = {
+			cracky = {
+				times = {3, 2, 1},
+			}
+		}
+	},
+	groups = { disable_repair = 1 }
+})
+
+minetest.register_tool("experimental:repairable_tool", {
+	description = "Repairable Tool",
+	wield_image = "default_dirt.png",
+	inventory_image = "default_dirt.png",
+	tool_capabilities = {
+		groupcaps = {
+			cracky = {
+				times = {3, 2, 1},
+			}
+		}
+	},
+})
+
+minetest.register_craft({
+	output = 'experimental:tester_tool_2',
+	recipe = {
+		{'group:crumbly','group:crumbly'},
 	}
 })
 
@@ -583,19 +710,113 @@ minetest.register_chatcommand("test1", {
 	end,
 })
 
+minetest.register_chatcommand("test_bulk_set_node", {
+	params = "",
+	description = "Test 2: bulk set a node",
+	func = function(name, param)
+		local player = minetest.get_player_by_name(name)
+		if not player then
+			return
+		end
+		local pos_list = {}
+		local ppos = player:get_pos()
+		local i = 1
+		for x=2,10 do
+			for y=2,10 do
+				for z=2,10 do
+					pos_list[i] = {x=ppos.x + x,y = ppos.y + y,z = ppos.z + z}
+					i = i + 1
+				end
+			end
+		end
+		minetest.bulk_set_node(pos_list, {name = "default:stone"})
+		minetest.chat_send_player(name, "Done.");
+	end,
+})
+
+minetest.register_chatcommand("bench_bulk_set_node", {
+	params = "",
+	description = "Test 3: bulk set a node (bench)",
+	func = function(name, param)
+		local player = minetest.get_player_by_name(name)
+		if not player then
+			return
+		end
+		local pos_list = {}
+		local ppos = player:get_pos()
+		local i = 1
+		for x=2,100 do
+			for y=2,100 do
+				for z=2,100 do
+					pos_list[i] = {x=ppos.x + x,y = ppos.y + y,z = ppos.z + z}
+					i = i + 1
+				end
+			end
+		end
+
+		minetest.chat_send_player(name, "Benching bulk set node. Warming up...");
+
+		-- warm up with default:stone to prevent having different callbacks
+		-- due to different node topology
+		minetest.bulk_set_node(pos_list, {name = "default:stone"})
+
+		minetest.chat_send_player(name, "Warming up finished, now benching...");
+
+		local start_time = os.clock()
+		for i=1,#pos_list do
+			minetest.set_node(pos_list[i], {name = "default:stone"})
+		end
+		local middle_time = os.clock()
+		minetest.bulk_set_node(pos_list, {name = "default:stone"})
+		local end_time = os.clock()
+		minetest.chat_send_player(name,
+			string.format("Bench results: set_node loop[%.2fms], bulk_set_node[%.2fms]",
+				(middle_time - start_time) * 1000,
+				(end_time - middle_time) * 1000
+			)
+		);
+	end,
+})
+
+local formspec_test_active = false
+
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-	experimental.print_to_everything("Inventory fields 1: player="..player:get_player_name()..", fields="..dump(fields))
+	if formspec_test_active then
+		experimental.print_to_everything("Inventory fields 1: player="..player:get_player_name()..", fields="..dump(fields))
+	end
 end)
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-	experimental.print_to_everything("Inventory fields 2: player="..player:get_player_name()..", fields="..dump(fields))
-	return true -- Disable the first callback
+	if formspec_test_active then
+		experimental.print_to_everything("Inventory fields 2: player="..player:get_player_name()..", fields="..dump(fields))
+		return true -- Disable the first callback
+	end
 end)
 minetest.register_on_player_receive_fields(function(player, formname, fields)
-	experimental.print_to_everything("Inventory fields 3: player="..player:get_player_name()..", fields="..dump(fields))
+	if formspec_test_active then
+		experimental.print_to_everything("Inventory fields 3: player="..player:get_player_name()..", fields="..dump(fields))
+	end
 end)
 
-minetest.log("experimental modname="..dump(minetest.get_current_modname()))
-minetest.log("experimental modpath="..dump(minetest.get_modpath("experimental")))
-minetest.log("experimental worldpath="..dump(minetest.get_worldpath()))
+minetest.register_chatcommand("test_formspec", {
+	param = "",
+	description = "Test 4: Toggle formspec test",
+	func = function(name, param)
+		formspec_test_active = not formspec_test_active
+		if formspec_test_active then
+			minetest.chat_send_player(name, "Formspec test enabled!")
+		else
+			minetest.chat_send_player(name, "Formspec test disabled!")
+		end
+	end
+})
+
+minetest.log("info", "experimental modname="..dump(minetest.get_current_modname()))
+minetest.log("info", "experimental modpath="..dump(minetest.get_modpath("experimental")))
+minetest.log("info", "experimental worldpath="..dump(minetest.get_worldpath()))
+
+
+core.register_on_mods_loaded(function()
+	core.log("action", "Yeah experimental loaded mods.")
+end)
 
 -- END

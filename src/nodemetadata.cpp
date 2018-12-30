@@ -23,6 +23,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "inventory.h"
 #include "log.h"
 #include "util/serialize.h"
+#include "util/basic_macros.h"
 #include "constants.h" // MAP_BLOCKSIZE
 #include <sstream>
 
@@ -31,38 +32,44 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 NodeMetadata::NodeMetadata(IItemDefManager *item_def_mgr):
-	m_stringvars(),
 	m_inventory(new Inventory(item_def_mgr))
-{
-}
+{}
 
 NodeMetadata::~NodeMetadata()
 {
 	delete m_inventory;
 }
 
-void NodeMetadata::serialize(std::ostream &os) const
+void NodeMetadata::serialize(std::ostream &os, u8 version, bool disk) const
 {
-	int num_vars = m_stringvars.size();
+	int num_vars = disk ? m_stringvars.size() : countNonPrivate();
 	writeU32(os, num_vars);
-	for (StringMap::const_iterator
-			it = m_stringvars.begin();
-			it != m_stringvars.end(); ++it) {
-		os << serializeString(it->first);
-		os << serializeLongString(it->second);
+	for (const auto &sv : m_stringvars) {
+		bool priv = isPrivate(sv.first);
+		if (!disk && priv)
+			continue;
+
+		os << serializeString(sv.first);
+		os << serializeLongString(sv.second);
+		if (version >= 2)
+			writeU8(os, (priv) ? 1 : 0);
 	}
 
 	m_inventory->serialize(os);
 }
 
-void NodeMetadata::deSerialize(std::istream &is)
+void NodeMetadata::deSerialize(std::istream &is, u8 version)
 {
-	m_stringvars.clear();
+	clear();
 	int num_vars = readU32(is);
 	for(int i=0; i<num_vars; i++){
 		std::string name = deSerializeString(is);
 		std::string var = deSerializeLongString(is);
 		m_stringvars[name] = var;
+		if (version >= 2) {
+			if (readU8(is) == 1)
+				markPrivate(name, true);
+		}
 	}
 
 	m_inventory->deSerialize(is);
@@ -70,45 +77,81 @@ void NodeMetadata::deSerialize(std::istream &is)
 
 void NodeMetadata::clear()
 {
-	m_stringvars.clear();
+	Metadata::clear();
+	m_privatevars.clear();
 	m_inventory->clear();
+}
+
+bool NodeMetadata::empty() const
+{
+	return Metadata::empty() && m_inventory->getLists().empty();
+}
+
+
+void NodeMetadata::markPrivate(const std::string &name, bool set)
+{
+	if (set)
+		m_privatevars.insert(name);
+	else
+		m_privatevars.erase(name);
+}
+
+int NodeMetadata::countNonPrivate() const
+{
+	// m_privatevars can contain names not actually present
+	// DON'T: return m_stringvars.size() - m_privatevars.size();
+	int n = 0;
+	for (const auto &sv : m_stringvars) {
+		if (!isPrivate(sv.first))
+			n++;
+	}
+	return n;
 }
 
 /*
 	NodeMetadataList
 */
 
-void NodeMetadataList::serialize(std::ostream &os) const
+void NodeMetadataList::serialize(std::ostream &os, u8 blockver, bool disk,
+	bool absolute_pos) const
 {
 	/*
 		Version 0 is a placeholder for "nothing to see here; go away."
 	*/
 
-	if(m_data.empty()){
+	u16 count = countNonEmpty();
+	if (count == 0) {
 		writeU8(os, 0); // version
 		return;
 	}
 
-	writeU8(os, 1); // version
-
-	u16 count = m_data.size();
+	u8 version = (blockver > 27) ? 2 : 1;
+	writeU8(os, version);
 	writeU16(os, count);
 
-	for(std::map<v3s16, NodeMetadata*>::const_iterator
+	for (NodeMetadataMap::const_iterator
 			i = m_data.begin();
-			i != m_data.end(); ++i)
-	{
+			i != m_data.end(); ++i) {
 		v3s16 p = i->first;
 		NodeMetadata *data = i->second;
+		if (data->empty())
+			continue;
 
-		u16 p16 = p.Z * MAP_BLOCKSIZE * MAP_BLOCKSIZE + p.Y * MAP_BLOCKSIZE + p.X;
-		writeU16(os, p16);
-
-		data->serialize(os);
+		if (absolute_pos) {
+			writeS16(os, p.X);
+			writeS16(os, p.Y);
+			writeS16(os, p.Z);
+		} else {
+			// Serialize positions within a mapblock
+			u16 p16 = (p.Z * MAP_BLOCKSIZE + p.Y) * MAP_BLOCKSIZE + p.X;
+			writeU16(os, p16);
+		}
+		data->serialize(os, version, disk);
 	}
 }
 
-void NodeMetadataList::deSerialize(std::istream &is, IItemDefManager *item_def_mgr)
+void NodeMetadataList::deSerialize(std::istream &is,
+	IItemDefManager *item_def_mgr, bool absolute_pos)
 {
 	clear();
 
@@ -119,7 +162,7 @@ void NodeMetadataList::deSerialize(std::istream &is, IItemDefManager *item_def_m
 		return;
 	}
 
-	if (version != 1) {
+	if (version > 2) {
 		std::string err_str = std::string(FUNCTION_NAME)
 			+ ": version " + itos(version) + " not supported";
 		infostream << err_str << std::endl;
@@ -128,26 +171,29 @@ void NodeMetadataList::deSerialize(std::istream &is, IItemDefManager *item_def_m
 
 	u16 count = readU16(is);
 
-	for (u16 i=0; i < count; i++) {
-		u16 p16 = readU16(is);
-
+	for (u16 i = 0; i < count; i++) {
 		v3s16 p;
-		p.Z = p16 / MAP_BLOCKSIZE / MAP_BLOCKSIZE;
-		p16 &= MAP_BLOCKSIZE * MAP_BLOCKSIZE - 1;
-		p.Y = p16 / MAP_BLOCKSIZE;
-		p16 &= MAP_BLOCKSIZE - 1;
-		p.X = p16;
-
+		if (absolute_pos) {
+			p.X = readS16(is);
+			p.Y = readS16(is);
+			p.Z = readS16(is);
+		} else {
+			u16 p16 = readU16(is);
+			p.X = p16 & (MAP_BLOCKSIZE - 1);
+			p16 /= MAP_BLOCKSIZE;
+			p.Y = p16 & (MAP_BLOCKSIZE - 1);
+			p16 /= MAP_BLOCKSIZE;
+			p.Z = p16;
+		}
 		if (m_data.find(p) != m_data.end()) {
-			warningstream<<"NodeMetadataList::deSerialize(): "
-					<<"already set data at position"
-					<<"("<<p.X<<","<<p.Y<<","<<p.Z<<"): Ignoring."
-					<<std::endl;
+			warningstream << "NodeMetadataList::deSerialize(): "
+					<< "already set data at position " << PP(p)
+					<< ": Ignoring." << std::endl;
 			continue;
 		}
 
 		NodeMetadata *data = new NodeMetadata(item_def_mgr);
-		data->deSerialize(is);
+		data->deSerialize(is, version);
 		m_data[p] = data;
 	}
 }
@@ -161,7 +207,7 @@ std::vector<v3s16> NodeMetadataList::getAllKeys()
 {
 	std::vector<v3s16> keys;
 
-	std::map<v3s16, NodeMetadata *>::const_iterator it;
+	NodeMetadataMap::const_iterator it;
 	for (it = m_data.begin(); it != m_data.end(); ++it)
 		keys.push_back(it->first);
 
@@ -170,7 +216,7 @@ std::vector<v3s16> NodeMetadataList::getAllKeys()
 
 NodeMetadata *NodeMetadataList::get(v3s16 p)
 {
-	std::map<v3s16, NodeMetadata *>::const_iterator n = m_data.find(p);
+	NodeMetadataMap::const_iterator n = m_data.find(p);
 	if (n == m_data.end())
 		return NULL;
 	return n->second;
@@ -180,7 +226,8 @@ void NodeMetadataList::remove(v3s16 p)
 {
 	NodeMetadata *olddata = get(p);
 	if (olddata) {
-		delete olddata;
+		if (m_is_metadata_owner)
+			delete olddata;
 		m_data.erase(p);
 	}
 }
@@ -193,41 +240,21 @@ void NodeMetadataList::set(v3s16 p, NodeMetadata *d)
 
 void NodeMetadataList::clear()
 {
-	std::map<v3s16, NodeMetadata*>::iterator it;
-	for (it = m_data.begin(); it != m_data.end(); ++it) {
-		delete it->second;
+	if (m_is_metadata_owner) {
+		NodeMetadataMap::const_iterator it;
+		for (it = m_data.begin(); it != m_data.end(); ++it)
+			delete it->second;
 	}
 	m_data.clear();
 }
 
-std::string NodeMetadata::getString(const std::string &name,
-	unsigned short recursion) const
+int NodeMetadataList::countNonEmpty() const
 {
-	StringMap::const_iterator it = m_stringvars.find(name);
-	if (it == m_stringvars.end())
-		return "";
-
-	return resolveString(it->second, recursion);
-}
-
-void NodeMetadata::setString(const std::string &name, const std::string &var)
-{
-	if (var.empty()) {
-		m_stringvars.erase(name);
-	} else {
-		m_stringvars[name] = var;
+	int n = 0;
+	NodeMetadataMap::const_iterator it;
+	for (it = m_data.begin(); it != m_data.end(); ++it) {
+		if (!it->second->empty())
+			n++;
 	}
+	return n;
 }
-
-std::string NodeMetadata::resolveString(const std::string &str,
-	unsigned short recursion) const
-{
-	if (recursion > 1) {
-		return str;
-	}
-	if (str.substr(0, 2) == "${" && str[str.length() - 1] == '}') {
-		return getString(str.substr(2, str.length() - 3), recursion + 1);
-	}
-	return str;
-}
-

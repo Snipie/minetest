@@ -17,12 +17,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef GENERICOBJECT_HEADER
-#define GENERICOBJECT_HEADER
+#pragma once
 
 #include <string>
 #include "irrlichttypes_bloated.h"
 #include <iostream>
+#include "itemgroup.h"
 
 enum GenericCMD {
 	GENERIC_CMD_SET_PROPERTIES,
@@ -35,7 +35,9 @@ enum GenericCMD {
 	GENERIC_CMD_SET_BONE_POSITION,
 	GENERIC_CMD_ATTACH_TO,
 	GENERIC_CMD_SET_PHYSICS_OVERRIDE,
-	GENERIC_CMD_UPDATE_NAMETAG_ATTRIBUTES
+	GENERIC_CMD_UPDATE_NAMETAG_ATTRIBUTES,
+	GENERIC_CMD_SPAWN_INFANT,
+	GENERIC_CMD_SET_ANIMATION_SPEED
 };
 
 #include "object_properties.h"
@@ -46,7 +48,7 @@ std::string gob_cmd_update_position(
 	v3f position,
 	v3f velocity,
 	v3f acceleration,
-	f32 yaw,
+	v3f rotation,
 	bool do_interpolate,
 	bool is_movement_end,
 	f32 update_interval
@@ -63,19 +65,23 @@ std::string gob_cmd_set_sprite(
 
 std::string gob_cmd_punched(s16 damage, s16 result_hp);
 
-#include "itemgroup.h"
 std::string gob_cmd_update_armor_groups(const ItemGroupList &armor_groups);
 
 std::string gob_cmd_update_physics_override(float physics_override_speed,
-		float physics_override_jump, float physics_override_gravity, bool sneak, bool sneak_glitch);
+		float physics_override_jump, float physics_override_gravity,
+		bool sneak, bool sneak_glitch, bool new_move);
 
 std::string gob_cmd_update_animation(v2f frames, float frame_speed, float frame_blend, bool frame_loop);
 
-std::string gob_cmd_update_bone_position(std::string bone, v3f position, v3f rotation);
+std::string gob_cmd_update_animation_speed(float frame_speed);
 
-std::string gob_cmd_update_attachment(int parent_id, std::string bone, v3f position, v3f rotation);
+std::string gob_cmd_update_bone_position(const std::string &bone, v3f position,
+		v3f rotation);
+
+std::string gob_cmd_update_attachment(int parent_id, const std::string &bone,
+		v3f position, v3f rotation);
 
 std::string gob_cmd_update_nametag_attributes(video::SColor color);
 
-#endif
-
+std::string gob_cmd_update_infant(u16 id, u8 type,
+		const std::string &client_initialization_data);

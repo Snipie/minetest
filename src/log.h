@@ -17,14 +17,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef LOG_HEADER
-#define LOG_HEADER
+#pragma once
 
 #include <map>
 #include <queue>
 #include <string>
 #include <fstream>
-#include "threads.h"
+#include <thread>
+#include <mutex>
+#if !defined(_WIN32)  // POSIX
+	#include <unistd.h>
+#endif
 #include "irrlichttypes.h"
 
 class ILogOutput;
@@ -37,6 +40,12 @@ enum LogLevel {
 	LL_INFO,
 	LL_VERBOSE,
 	LL_MAX,
+};
+
+enum LogColor {
+	LOG_COLOR_NEVER,
+	LOG_COLOR_ALWAYS,
+	LOG_COLOR_AUTO,
 };
 
 typedef u8 LogLevelMask;
@@ -64,6 +73,8 @@ public:
 	static LogLevel stringToLevel(const std::string &name);
 	static const std::string getLevelLabel(LogLevel lev);
 
+	static LogColor color_mode;
+
 private:
 	void logToOutputsRaw(LogLevel, const std::string &line);
 	void logToOutputs(LogLevel, const std::string &combined,
@@ -78,8 +89,8 @@ private:
 	// written to when one thread has access currently).
 	// Works on all known architectures (x86, ARM, MIPS).
 	volatile bool m_silenced_levels[LL_MAX];
-	std::map<threadid_t, std::string> m_thread_names;
-	mutable Mutex m_mutex;
+	std::map<std::thread::id, std::string> m_thread_names;
+	mutable std::mutex m_mutex;
 	bool m_trace_enabled;
 };
 
@@ -106,15 +117,50 @@ public:
 	StreamLogOutput(std::ostream &stream) :
 		m_stream(stream)
 	{
+#if !defined(_WIN32)
+		colored = (Logger::color_mode == LOG_COLOR_ALWAYS) ||
+			(Logger::color_mode == LOG_COLOR_AUTO && isatty(fileno(stdout)));
+#else
+		colored = Logger::color_mode == LOG_COLOR_ALWAYS;
+#endif
 	}
 
 	void logRaw(LogLevel lev, const std::string &line)
 	{
+		bool colored_message = colored;
+		if (colored_message)
+			switch (lev) {
+			case LL_ERROR:
+				// error is red
+				m_stream << "\033[91m";
+				break;
+			case LL_WARNING:
+				// warning is yellow
+				m_stream << "\033[93m";
+				break;
+			case LL_INFO:
+				// info is a bit dark
+				m_stream << "\033[37m";
+				break;
+			case LL_VERBOSE:
+				// verbose is darker than info
+				m_stream << "\033[2m";
+				break;
+			default:
+				// action is white
+				colored_message = false;
+			}
+
 		m_stream << line << std::endl;
+
+		if (colored_message)
+			// reset to white color
+			m_stream << "\033[0m";
 	}
 
 private:
 	std::ostream &m_stream;
+	bool colored;
 };
 
 class FileLogOutput : public ICombinedLogOutput {
@@ -205,12 +251,7 @@ extern std::ostream dstream;
 #define dout_con (*dout_con_ptr)
 #define derr_con (*derr_con_ptr)
 #define dout_server (*dout_server_ptr)
-#define derr_server (*derr_server_ptr)
 
 #ifndef SERVER
 	#define dout_client (*dout_client_ptr)
-	#define derr_client (*derr_client_ptr)
-#endif
-
-
 #endif

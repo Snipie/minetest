@@ -13,10 +13,8 @@
 #    http://wiki.minetest.net/
 
 #
-# Client
+# Controls
 #
-
-## Controls
 
 #    If enabled, you can place blocks at the position (feet + eye level) where you stand.
 #    This is helpful when working with nodeboxes in small areas.
@@ -28,7 +26,11 @@
 #    type: bool
 # free_move = false
 
-#    Fast movement (via use key).
+#    If enabled together with fly mode, makes move directions relative to the player's pitch.
+#    type: bool
+# pitch_fly = false
+
+#    Fast movement (via the "special" key).
 #    This requires the "fast" privilege on the server.
 #    type: bool
 # fast_move = false
@@ -59,7 +61,8 @@
 #    type: float
 # mouse_sensitivity = 0.2
 
-#    If enabled, "use" key instead of "sneak" key is used for climbing down and descending.
+#    If enabled, "special" key instead of "sneak" key is used for climbing down and
+#    descending.
 #    type: bool
 # aux1_descends = false
 
@@ -67,21 +70,70 @@
 #    type: bool
 # doubletap_jump = false
 
-#    If disabled "use" key is used to fly fast if both fly and fast mode are enabled.
+#    If disabled, "special" key is used to fly fast if both fly and fast mode are
+#    enabled.
 #    type: bool
 # always_fly_fast = true
 
-#    The time in seconds it takes between repeated right clicks when holding the right mouse button.
+#    The time in seconds it takes between repeated right clicks when holding the right
+#    mouse button.
 #    type: float
 # repeat_rightclick_time = 0.25
+
+#    Automatically jump up single-node obstacles.
+#    type: bool
+#    type: bool
+# autojump = false
+
+#    Prevent digging and placing from repeating when holding the mouse buttons.
+#    Enable this when you dig or place too often by accident.
+#    type: bool
+# safe_dig_and_place = false
 
 #    Enable random user input (only used for testing).
 #    type: bool
 # random_input = false
 
-#    Continuous forward movement (only used for testing).
+#    Continuous forward movement, toggled by autoforward key.
+#    Press the autoforward key again or the backwards movement to disable.
 #    type: bool
 # continuous_forward = false
+
+#    The length in pixels it takes for touch screen interaction to start.
+#    type: int min: 0 max: 100
+# touchscreen_threshold = 20
+
+#    (Android) Fixes the position of virtual joystick.
+#    If disabled, virtual joystick will center to first-touch's position.
+#    type: bool
+# fixed_virtual_joystick = false
+
+#    (Android) Use virtual joystick to trigger "aux" button.
+#    If enabled, virtual joystick will also tap "aux" button when out of main circle.
+#    type: bool
+# virtual_joystick_triggers_aux = false
+
+#    Enable joysticks
+#    type: bool
+# enable_joysticks = false
+
+#    The identifier of the joystick to use
+#    type: int
+# joystick_id = 0
+
+#    The type of joystick
+#    type: enum values: auto, generic, xbox
+# joystick_type = auto
+
+#    The time in seconds it takes between repeated events
+#    when holding down a joystick button combination.
+#    type: float
+# repeat_joystick_button_time = 0.17
+
+#    The sensitivity of the joystick axes for moving the
+#    ingame view frustum around.
+#    type: float
+# joystick_frustum_sensitivity = 170
 
 #    Key for moving the player forward.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
@@ -89,6 +141,7 @@
 # keymap_forward = KEY_KEY_W
 
 #    Key for moving the player backward.
+#    Will also disable autoforward, when active.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
 # keymap_backward = KEY_KEY_S
@@ -134,10 +187,10 @@
 #    type: key
 # keymap_cmd = /
 
-#    Key for opening the chat console.
+#    Key for opening the chat window to type local commands.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
-# keyman_console = KEY_F10
+# keymap_cmd_local = .
 
 #    Key for toggling unlimited view range.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
@@ -149,6 +202,11 @@
 #    type: key
 # keymap_freemove = KEY_KEY_K
 
+#    Key for toggling pitch fly mode.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_pitchfly = KEY_KEY_L
+
 #    Key for toggling fast mode.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
@@ -158,6 +216,36 @@
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
 # keymap_noclip = KEY_KEY_H
+
+#    Key for selecting the next item in the hotbar.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_hotbar_next = KEY_KEY_N
+
+#    Key for selecting the previous item in the hotbar.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_hotbar_previous = KEY_KEY_B
+
+#    Key for muting the game.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_mute = KEY_KEY_M
+
+#    Key for increasing the volume.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_increase_volume =
+
+#    Key for decreasing the volume.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_decrease_volume =
+
+#    Key for toggling autoforward.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_autoforward =
 
 #    Key for toggling cinematic mode.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
@@ -179,22 +267,192 @@
 #    type: key
 # keymap_drop = KEY_KEY_Q
 
+#    Key to use view zoom when possible.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_zoom = KEY_KEY_Z
+
+#    Key for selecting the first hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot1 = KEY_KEY_1
+
+#    Key for selecting the second hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot2 = KEY_KEY_2
+
+#    Key for selecting the third hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot3 = KEY_KEY_3
+
+#    Key for selecting the fourth hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot4 = KEY_KEY_4
+
+#    Key for selecting the fifth hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot5 = KEY_KEY_5
+
+#    Key for selecting the sixth hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot6 = KEY_KEY_6
+
+#    Key for selecting the seventh hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot7 = KEY_KEY_7
+
+#    Key for selecting the eighth hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot8 = KEY_KEY_8
+
+#    Key for selecting the ninth hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot9 = KEY_KEY_9
+
+#    Key for selecting the tenth hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot10 = KEY_KEY_0
+
+#    Key for selecting the 11th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot11 =
+
+#    Key for selecting the 12th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot12 =
+
+#    Key for selecting the 13th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot13 =
+
+#    Key for selecting the 14th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot14 =
+
+#    Key for selecting the 15th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot15 =
+
+#    Key for selecting the 16th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot16 =
+
+#    Key for selecting the 17th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot17 =
+
+#    Key for selecting the 18th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot18 =
+
+#    Key for selecting the 19th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot19 =
+
+#    Key for selecting the 20th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot20 =
+
+#    Key for selecting the 21st hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot21 =
+
+#    Key for selecting the 22nd hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot22 =
+
+#    Key for selecting the 23rd hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot23 =
+
+#    Key for selecting the 24th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot24 =
+
+#    Key for selecting the 25th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot25 =
+
+#    Key for selecting the 26th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot26 =
+
+#    Key for selecting the 27th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot27 =
+
+#    Key for selecting the 28th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot28 =
+
+#    Key for selecting the 29th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot29 =
+
+#    Key for selecting the 30th hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot30 =
+
+#    Key for selecting the 31st hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot31 =
+
+#    Key for selecting the 32nd hotbar slot.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_slot32 =
+
 #    Key for toggling the display of the HUD.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
 # keymap_toggle_hud = KEY_F1
 
-#    Key for toggling the display of the chat.
+#    Key for toggling the display of chat.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
 # keymap_toggle_chat = KEY_F2
 
-#    Key for toggling the display of the fog.
+#    Key for toggling the display of the large chat console.
+#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
+#    type: key
+# keymap_console = KEY_F10
+
+#    Key for toggling the display of fog.
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
 # keymap_toggle_force_fog_off = KEY_F3
 
-#    Key for toggling the camrea update. Only used for development
+#    Key for toggling the camera update. Only used for development
 #    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
 #    type: key
 # keymap_toggle_update_camera =
@@ -224,58 +482,13 @@
 #    type: key
 # keymap_decrease_viewing_range_min = -
 
-#    Key for printing debug stacks. Used for development.
-#    See http://irrlicht.sourceforge.net/docu/namespaceirr.html#a54da2a0e231901735e3da1b0edf72eb3
-#    type: key
-# keymap_print_debug_stacks = KEY_KEY_P
+#
+# Graphics
+#
 
-## Network
+## In-Game
 
-#    Address to connect to.
-#    Leave this blank to start a local server.
-#    Note that the address field in the main menu overrides this setting.
-#    type: string
-# address =
-
-#    Port to connect to (UDP).
-#    Note that the port field in the main menu overrides this setting.
-#    type: int min: 1 max: 65535
-# remote_port = 30000
-
-#    Whether to support older servers before protocol version 25.
-#    Enable if you want to connect to 0.4.12 servers and before.
-#    Servers starting with 0.4.13 will work, 0.4.12-dev servers may work.
-#    Disabling this option will protect your password better.
-#    type: bool
-# send_pre_v25_init = true
-
-#    Save the map received by the client on disk.
-#    type: bool
-# enable_local_map_saving = false
-
-#    Show entity selection boxes
-#    type: bool
-# show_entity_selectionbox = true
-
-#    Enable usage of remote media server (if provided by server).
-#    Remote servers offer a significantly faster way to download media (e.g. textures)
-#    when connecting to the server.
-#    type: bool
-# enable_remote_media_server = true
-
-#    URL to the server list displayed in the Multiplayer Tab.
-#    type: string
-# serverlist_url = servers.minetest.net
-
-#    File in client/serverlist/ that contains your favorite servers displayed in the Multiplayer Tab.
-#    type: string
-# serverlist_file = favoriteservers.txt
-
-## Graphics
-
-### In-Game
-
-#### Basic
+### Basic
 
 #    Enable VBO
 #    type: bool
@@ -310,12 +523,18 @@
 # enable_3d_clouds = true
 
 #    Method used to highlight selected object.
-#    type: enum values: box, halo
+#    type: enum values: box, halo, none
 # node_highlighting = box
 
-#### Filtering
+#    Adds particles when digging a node.
+#    type: bool
+# enable_particles = true
 
-#    Use mip mapping to scale textures. May slightly increase performance.
+### Filtering
+
+#    Use mip mapping to scale textures. May slightly increase performance,
+#    especially when using a high resolution texture pack.
+#    Gamma correct downscaling is not supported.
 #    type: bool
 # mip_map = false
 
@@ -333,18 +552,20 @@
 
 #    Filtered textures can blend RGB values with fully-transparent neighbors,
 #    which PNG optimizers usually discard, sometimes resulting in a dark or
-#    light edge to transparent textures.  Apply this filter to clean that up
+#    light edge to transparent textures. Apply this filter to clean that up
 #    at texture load time.
 #    type: bool
 # texture_clean_transparent = false
 
 #    When using bilinear/trilinear/anisotropic filters, low-resolution textures
 #    can be blurred, so automatically upscale them with nearest-neighbor
-#    interpolation to preserve crisp pixels.  This sets the minimum texture size
+#    interpolation to preserve crisp pixels. This sets the minimum texture size
 #    for the upscaled textures; higher values look sharper, but require more
-#    memory.  Powers of 2 are recommended.  Setting this higher than 1 may not
+#    memory.  Powers of 2 are recommended. Setting this higher than 1 may not
 #    have a visible effect unless bilinear/trilinear/anisotropic filtering is
 #    enabled.
+#    This is also used as the base node texture size for world-aligned
+#    texture autoscaling.
 #    type: int
 # texture_min_size = 64
 
@@ -353,20 +574,31 @@
 #    type: enum values: 0, 1, 2, 4, 8, 16
 # fsaa = 0
 
-#### Shaders
+#    Undersampling is similar to using lower screen resolution, but it applies
+#    to the game world only, keeping the GUI intact.
+#    It should give significant performance boost at the cost of less detailed image.
+#    type: enum values: 0, 2, 3, 4
+# undersampling = 0
 
-#    Shaders allow advanced visul effects and may increase performance on some video cards.
-#    Thy only work with the OpenGL video backend.
+### Shaders
+
+#    Shaders allow advanced visual effects and may increase performance on some video
+#    cards.
+#    This only works with the OpenGL video backend.
 #    type: bool
 # enable_shaders = true
 
-##### Tone Mapping
+#    Path to shader directory. If no path is defined, default location will be used.
+#    type: path
+# shader_path =
+
+#### Tone Mapping
 
 #    Enables filmic tone mapping
 #    type: bool
 # tone_mapping = false
 
-##### Bumpmapping
+#### Bumpmapping
 
 #    Enables bumpmapping for textures. Normalmaps need to be supplied by the texture pack
 #    or need to be auto-generated.
@@ -388,7 +620,7 @@
 #    type: int min: 0 max: 2
 # normalmaps_smooth = 0
 
-##### Parallax Occlusion
+#### Parallax Occlusion
 
 #    Enables parallax occlusion mapping.
 #    Requires shaders to be enabled.
@@ -402,7 +634,7 @@
 
 #    Strength of parallax.
 #    type: float
-# 3d_parallax_strength = 0.025
+# 3d_paralax_strength = 0.025
 
 #    Number of parallax occlusion iterations.
 #    type: int
@@ -416,7 +648,7 @@
 #    type: float
 # parallax_occlusion_bias = 0.04
 
-##### Waving Nodes
+#### Waving Nodes
 
 #    Set to true enables waving water.
 #    Requires shaders to be enabled.
@@ -442,7 +674,12 @@
 #    type: bool
 # enable_waving_plants = false
 
-#### Advanced
+### Advanced
+
+#    Arm inertia, gives a more realistic movement of
+#    the arm when the camera moves.
+#    type: bool
+# arm_inertia = true
 
 #    If FPS would go higher than this, limit it by sleeping
 #    to not waste CPU power for no benefit.
@@ -453,18 +690,33 @@
 #    type: int
 # pause_fps_max = 20
 
+#    Open the pause menu when the window's focus is lost. Does not pause if a formspec is
+#    open.
+#    type: bool
+# pause_on_lost_focus = false
+
 #    View distance in nodes.
-#    Min = 20
-#    type: int
+#    type: int min: 20 max: 4000
 # viewing_range = 100
+
+#    Camera near plane distance in nodes, between 0 and 0.5
+#    Most users will not need to change this.
+#    Increasing can reduce artifacting on weaker GPUs.
+#    0.1 = Default, 0.25 = Good value for weaker tablets.
+#    type: float min: 0 max: 0.5
+# near_plane = 0.1
 
 #    Width component of the initial window size.
 #    type: int
-# screenW = 800
+# screen_w = 1024
 
 #    Height component of the initial window size.
 #    type: int
-# screenH = 600
+# screen_h = 600
+
+#    Save window size automatically when modified.
+#    type: bool
+# autosave_screensize = true
 
 #    Fullscreen mode.
 #    type: bool
@@ -479,32 +731,53 @@
 # vsync = false
 
 #    Field of view in degrees.
-#    type: int min: 30 max: 160
+#    type: int min: 45 max: 160
 # fov = 72
 
-#    Adjust the gamma encoding for the light tables. Lower numbers are brighter.
+#    Adjust the gamma encoding for the light tables. Higher numbers are brighter.
 #    This setting is for the client only and is ignored by the server.
-#    type: float min: 1 max: 3
-# display_gamma = 1.8
+#    type: float min: 0.5 max: 3
+# display_gamma = 1.0
+
+#    Gradient of light curve at minimum light level.
+#    type: float min: 0 max: 4
+# lighting_alpha = 0.0
+
+#    Gradient of light curve at maximum light level.
+#    type: float min: 0 max: 4
+# lighting_beta = 1.5
+
+#    Strength of light curve mid-boost.
+#    type: float min: 0 max: 1
+# lighting_boost = 0.2
+
+#    Center of light curve mid-boost.
+#    type: float min: 0 max: 1
+# lighting_boost_center = 0.5
+
+#    Spread of light curve mid-boost.
+#    Standard deviation of the mid-boost gaussian.
+#    type: float min: 0 max: 1
+# lighting_boost_spread = 0.2
 
 #    Path to texture directory. All textures are first searched from here.
 #    type: path
 # texture_path =
 
 #    The rendering back-end for Irrlicht.
-#    type: enum values: null, software, burningsvideo, direct3d8, direct3d9, opengl
+#    A restart is required after changing this.
+#    Note: On Android, stick with OGLES1 if unsure! App may fail to start otherwise.
+#    On other platforms, OpenGL is recommended, and it’s the only driver with
+#    shader support currently.
+#    type: enum values: null, software, burningsvideo, direct3d8, direct3d9, opengl, ogles1, ogles2
 # video_driver = opengl
-
-#    Height on which clouds are appearing.
-#    type: int
-# cloud_height = 120
 
 #    Radius of cloud area stated in number of 64 node cloud squares.
 #    Values larger than 26 will start to produce sharp cutoffs at cloud area corners.
 #    type: int
 # cloud_radius = 12
 
-#    Multiplier for view bobbing.
+#    Enable view bobbing and amount of view bobbing.
 #    For example: 0 for no view bobbing; 1.0 for normal; 2.0 for double.
 #    type: float
 # view_bobbing_amount = 1.0
@@ -512,7 +785,7 @@
 #    Multiplier for fall bobbing.
 #    For example: 0 for no view bobbing; 1.0 for normal; 2.0 for double.
 #    type: float
-# fall_bobbing_amount = 0.0
+# fall_bobbing_amount = 0.03
 
 #    3D support.
 #    Currently supported:
@@ -521,9 +794,15 @@
 #    -    interlaced: odd/even line based polarisation screen support.
 #    -    topbottom: split screen top/bottom.
 #    -    sidebyside: split screen side by side.
+#    -    crossview: Cross-eyed 3d
 #    -    pageflip: quadbuffer based 3d.
-#    type: enum values: none, anaglyph, interlaced, topbottom, sidebyside, pageflip
+#    Note that the interlaced mode requires shaders to be enabled.
+#    type: enum values: none, anaglyph, interlaced, topbottom, sidebyside, crossview, pageflip
 # 3d_mode = none
+
+#    In-game chat console height, between 0.1 (10%) and 1.0 (100%).
+#    type: float min: 0.1 max: 1
+# console_height = 0.6
 
 #    In-game chat console background color (R,G,B).
 #    type: string
@@ -533,11 +812,27 @@
 #    type: int min: 0 max: 255
 # console_alpha = 200
 
+#    Formspec full-screen background opacity (between 0 and 255).
+#    type: int min: 0 max: 255
+# formspec_fullscreen_bg_opacity = 140
+
+#    Formspec full-screen background color (R,G,B).
+#    type: string
+# formspec_fullscreen_bg_color = (0,0,0)
+
+#    Formspec default background opacity (between 0 and 255).
+#    type: int min: 0 max: 255
+# formspec_default_bg_opacity = 140
+
+#    Formspec default background color (R,G,B).
+#    type: string
+# formspec_default_bg_color = (0,0,0)
+
 #    Selection box border color (R,G,B).
 #    type: string
 # selectionbox_color = (0,0,0)
 
-#    Width of the selectionbox's lines around nodes.
+#    Width of the selection box lines around nodes.
 #    type: int min: 1 max: 5
 # selectionbox_width = 2
 
@@ -549,6 +844,10 @@
 #    type: int min: 0 max: 255
 # crosshair_alpha = 255
 
+#    Maximum number of recent chat messages to show
+#    type: int min: 2 max: 20
+# recent_chat_messages = 6
+
 #    Whether node texture animations should be desynchronized per mapblock.
 #    type: bool
 # desynchronize_mapblock_texture_animation = true
@@ -558,9 +857,24 @@
 #    type: float
 # hud_hotbar_max_width = 1.0
 
+#    Modifies the size of the hudbar elements.
+#    type: float
+# hud_scaling = 1.0
+
 #    Enables caching of facedir rotated meshes.
 #    type: bool
 # enable_mesh_cache = false
+
+#    Delay between mesh updates on the client in ms. Increasing this will slow
+#    down the rate of mesh updates, thus reducing jitter on slower clients.
+#    type: int min: 0 max: 50
+# mesh_generation_interval = 0
+
+#    Size of the MapBlock cache of the mesh generator. Increasing this will
+#    increase the cache hit %, reducing the data being copied from the main
+#    thread, thus reducing jitter.
+#    type: int min: 0 max: 1000
+# meshgen_block_cache_size = 20
 
 #    Enables minimap.
 #    type: bool
@@ -591,13 +905,43 @@
 #    type: bool
 # inventory_items_animations = false
 
-### Menus
+#    Fraction of the visible distance at which fog starts to be rendered
+#    type: float min: 0 max: 0.99
+# fog_start = 0.4
+
+#    Makes all liquids opaque
+#    type: bool
+# opaque_water = false
+
+#    Textures on a node may be aligned either to the node or to the world.
+#    The former mode suits better things like machines, furniture, etc., while
+#    the latter makes stairs and microblocks fit surroundings better.
+#    However, as this possibility is new, thus may not be used by older servers,
+#    this option allows enforcing it for certain node types. Note though that
+#    that is considered EXPERIMENTAL and may not work properly.
+#    type: enum values: disable, enable, force_solid, force_nodebox
+# world_aligned_mode = enable
+
+#    World-aligned textures may be scaled to span several nodes. However,
+#    the server may not send the scale you want, especially if you use
+#    a specially-designed texture pack; with this option, the client tries
+#    to determine the scale automatically basing on the texture size.
+#    See also texture_min_size.
+#    Warning: This option is EXPERIMENTAL!
+#    type: enum values: disable, enable, force
+# autoscale_mode = disable
+
+#    Show entity selection boxes
+#    type: bool
+# show_entity_selectionbox = true
+
+## Menus
 
 #    Use a cloud animation for the main menu background.
 #    type: bool
 # menu_clouds = true
 
-#    Scale gui by a user specified value.
+#    Scale GUI by a user specified value.
 #    Use a nearest-neighbor-anti-alias filter to scale the GUI.
 #    This will smooth over some of the rough edges, and blend
 #    pixels when scaling down, at the cost of blurring some
@@ -614,7 +958,7 @@
 #    When gui_scaling_filter_txr2img is true, copy those images
 #    from hardware to software for scaling.  When false, fall back
 #    to the old scaling method, for video drivers that don't
-#    propery support downloading textures back from hardware.
+#    properly support downloading textures back from hardware.
 #    type: bool
 # gui_scaling_filter_txr2img = true
 
@@ -622,16 +966,20 @@
 #    type: int
 # tooltip_show_delay = 400
 
-#    Whether freetype fonts are used, requires freetype support to be compiled in.
+#    Append item name to tooltip.
+#    type: bool
+# tooltip_append_itemname = false
+
+#    Whether FreeType fonts are used, requires FreeType support to be compiled in.
 #    type: bool
 # freetype = true
 
 #    Path to TrueTypeFont or bitmap.
-#    type: path
+#    type: filepath
 # font_path = fonts/liberationsans.ttf
 
 #    type: int
-# font_size = 15
+# font_size = 16
 
 #    Font shadow offset, if 0 then shadow will not be drawn.
 #    type: int
@@ -639,16 +987,16 @@
 
 #    Font shadow alpha (opaqueness, between 0 and 255).
 #    type: int min: 0 max: 255
-# font_shadow_alpha = 128
+# font_shadow_alpha = 127
 
-#    type: path
+#    type: filepath
 # mono_font_path = fonts/liberationmono.ttf
 
 #    type: int
 # mono_font_size = 15
 
 #    This font will be used for certain languages.
-#    type: path
+#    type: filepath
 # fallback_font_path = fonts/DroidSansFallbackFull.ttf
 
 #    type: int
@@ -674,19 +1022,75 @@
 #    type: int min: 0 max: 100
 # screenshot_quality = 0
 
-### Advanced
+## Advanced
 
 #    Adjust dpi configuration to your screen (non X11/Android only) e.g. for 4k screens.
 #    type: int
 # screen_dpi = 72
 
-## Sound
+#    Windows systems only: Start Minetest with the command line window in the background.
+#    Contains the same information as the file debug.txt (default name).
+#    type: bool
+# enable_console = false
+
+#
+# Sound
+#
 
 #    type: bool
 # enable_sound = true
 
 #    type: float min: 0 max: 1
 # sound_volume = 0.7
+
+#    type: bool
+# mute_sound = false
+
+#
+# Client
+#
+
+## Network
+
+#    Address to connect to.
+#    Leave this blank to start a local server.
+#    Note that the address field in the main menu overrides this setting.
+#    type: string
+# address =
+
+#    Port to connect to (UDP).
+#    Note that the port field in the main menu overrides this setting.
+#    type: int min: 1 max: 65535
+# remote_port = 30000
+
+#    Save the map received by the client on disk.
+#    type: bool
+# enable_local_map_saving = false
+
+#    Enable usage of remote media server (if provided by server).
+#    Remote servers offer a significantly faster way to download media (e.g. textures)
+#    when connecting to the server.
+#    type: bool
+# enable_remote_media_server = true
+
+#    Enable Lua modding support on client.
+#    This support is experimental and API can change.
+#    type: bool
+# enable_client_modding = false
+
+#    URL to the server list displayed in the Multiplayer Tab.
+#    type: string
+# serverlist_url = servers.minetest.net
+
+#    File in client/serverlist/ that contains your favorite servers displayed in the
+#    Multiplayer Tab.
+#    type: string
+# serverlist_file = favoriteservers.txt
+
+#    Maximum size of the out chat queue.
+#    0 to disable queueing and -1 to make the queue size unlimited.
+#    type: int
+# max_out_chat_queue_size = 20
 
 ## Advanced
 
@@ -721,16 +1125,20 @@
 
 #    Homepage of server, to be displayed in the serverlist.
 #    type: string
-# server_url = http://minetest.net
+# server_url = https://minetest.net
 
-#    Automaticaly report to the serverlist.
+#    Automatically report to the serverlist.
 #    type: bool
 # server_announce = false
 
 #    Announce to this serverlist.
-#    If you want to announce your ipv6 address, use  serverlist_url = v6.servers.minetest.net.
 #    type: string
 # serverlist_url = servers.minetest.net
+
+#    Remove color codes from incoming chat messages
+#    Use this to stop players from being able to use color in their messages
+#    type: bool
+# strip_color_codes = false
 
 ## Network
 
@@ -756,21 +1164,18 @@
 #    type: string
 # remote_media =
 
-#    Enable/disable running an IPv6 server.  An IPv6 server may be restricted
-#    to IPv6 clients, depending on system configuration.
+#    Enable/disable running an IPv6 server.
 #    Ignored if bind_address is set.
 #    type: bool
 # ipv6_server = false
 
 ### Advanced
 
-#    How many blocks are flying in the wire simultaneously per client.
+#    Maximum number of blocks that are simultaneously sent per client.
+#    The maximum total count is calculated dynamically:
+#    max_total = ceil((#clients + max_users) * per_client / 4)
 #    type: int
-# max_simultaneous_block_sends_per_client = 10
-
-#    How many blocks are flying in the wire simultaneously for the whole server.
-#    type: int
-# max_simultaneous_block_sends_server_total = 40
+# max_simultaneous_block_sends_per_client = 40
 
 #    To reduce lag, block transfers are slowed down when a player is building something.
 #    This determines how long they are slowed down after placing or removing a node.
@@ -794,7 +1199,7 @@
 #    type: string
 # motd =
 
-#    Maximum number of players that can connect simultaneously.
+#    Maximum number of players that can be connected simultaneously.
 #    type: int
 # max_users = 15
 
@@ -811,6 +1216,10 @@
 #    Enable players getting damage and dying.
 #    type: bool
 # enable_damage = false
+
+#    Enable creative mode for new created maps.
+#    type: bool
+# creative_mode = false
 
 #    A chosen map seed for a new map, leave empty for random.
 #    Will be overridden when creating a new world in the main menu.
@@ -843,6 +1252,10 @@
 #    type: bool
 # enable_pvp = true
 
+#    Enable mod channels support.
+#    type: bool
+# enable_mod_channels = false
+
 #    If this is set, players will always (re)spawn at the given position.
 #    type: string
 # static_spawnpoint =
@@ -874,17 +1287,24 @@
 # ask_reconnect_on_crash = false
 
 #    From how far clients know about objects, stated in mapblocks (16 nodes).
+#    
+#    Setting this larger than active_block_range will also cause the server
+#    to maintain active objects up to this distance in the direction the
+#    player is looking. (This can avoid mobs suddenly disappearing from view)
 #    type: int
 # active_object_send_range_blocks = 3
 
-#    How large area of blocks are subject to the active block stuff, stated in mapblocks (16 nodes).
+#    The radius of the volume of blocks around every player that is subject to the
+#    active block stuff, stated in mapblocks (16 nodes).
 #    In active blocks objects are loaded and ABMs run.
+#    This is also the minimum range in which active objects (mobs) are maintained.
+#    This should be configured together with active_object_range.
 #    type: int
-# active_block_range = 2
+# active_block_range = 3
 
 #    From how far blocks are sent to clients, stated in mapblocks (16 nodes).
 #    type: int
-# max_block_send_distance = 10
+# max_block_send_distance = 9
 
 #    Maximum number of forceloaded mapblocks.
 #    type: int
@@ -895,13 +1315,30 @@
 # time_send_interval = 5
 
 #    Controls length of day/night cycle.
-#    Examples: 72 = 20min, 360 = 4min, 1 = 24hour, 0 = day/night/whatever stays unchanged.
+#    Examples:
+#    72 = 20min, 360 = 4min, 1 = 24hour, 0 = day/night/whatever stays unchanged.
 #    type: int
 # time_speed = 72
+
+#    Time of day when a new world is started, in millihours (0-23999).
+#    type: int min: 0 max: 23999
+# world_start_time = 5250
 
 #    Interval of saving important changes in the world, stated in seconds.
 #    type: float
 # server_map_save_interval = 5.3
+
+#    Set the maximum character length of a chat message sent by clients.
+#    type: int
+# chat_message_max_size = 500
+
+#    Amount of messages a player may send per 10 seconds.
+#    type: float
+# chat_message_limit_per_10sec = 10.0
+
+#    Kick players who sent more than X messages per 10 seconds.
+#    type: int
+# chat_message_limit_trigger_kick = 50
 
 ### Physics
 
@@ -924,13 +1361,10 @@
 # movement_speed_fast = 20
 
 #    type: float
-# movement_speed_climb = 2
+# movement_speed_climb = 3
 
 #    type: float
 # movement_speed_jump = 6.5
-
-#    type: float
-# movement_speed_descend = 6
 
 #    type: float
 # movement_liquid_fluidity = 1
@@ -953,18 +1387,6 @@
 #    type: enum values: legacy, log, error
 # deprecated_lua_api_handling = legacy
 
-#    Useful for mod developers.
-#    type: bool
-# mod_profiling = false
-
-#    Detailed mod profile data. Useful for mod developers.
-#    type: bool
-# detailed_profiling = false
-
-#    Profiler data print interval. 0 = disable. Useful for developers.
-#    type: int
-# profiler_print_interval = 0
-
 #    Number of extra blocks that can be loaded by /clearobjects at once.
 #    This is a trade-off between sqlite transaction overhead and
 #    memory consumption (4096=100MB, as a rule of thumb).
@@ -978,27 +1400,28 @@
 
 #    Maximum number of statically stored objects in a block.
 #    type: int
-# max_objects_per_block = 49
+# max_objects_per_block = 64
 
-#    See http://www.sqlite.org/pragma.html#pragma_synchronous
+#    See https://www.sqlite.org/pragma.html#pragma_synchronous
 #    type: enum values: 0, 1, 2
 # sqlite_synchronous = 2
 
-#    Length of a server tick and the interval at which objects are generally updated over network.
+#    Length of a server tick and the interval at which objects are generally updated over
+#    network.
 #    type: float
-# dedicated_server_step = 0.1
+# dedicated_server_step = 0.09
 
-#    Time in between active block management cycles
+#    Length of time between active block management cycles
 #    type: float
 # active_block_mgmt_interval = 2.0
 
-#    Length of time between ABM execution cycles
+#    Length of time between Active Block Modifier (ABM) execution cycles
 #    type: float
 # abm_interval = 1.0
 
 #    Length of time between NodeTimer execution cycles
 #    type: float
-# nodetimer_interval = 1.0
+# nodetimer_interval = 0.2
 
 #    If enabled, invalid world data won't cause the server to shut down.
 #    Only enable this if you know what you are doing.
@@ -1019,442 +1442,112 @@
 #    type: float
 # liquid_update = 1.0
 
-## Mapgen
+#    At this distance the server will aggressively optimize which blocks are sent to
+#    clients.
+#    Small values potentially improve performance a lot, at the expense of visible
+#    rendering glitches (some blocks will not be rendered under water and in caves,
+#    as well as sometimes on land).
+#    Setting this to a value greater than max_block_send_distance disables this
+#    optimization.
+#    Stated in mapblocks (16 nodes).
+#    type: int min: 2
+# block_send_optimize_distance = 4
 
-#    Name of map generator to be used when creating a new world.
-#    Creating a world in the main menu will override this.
-#    type: enum values: v5, v6, v7, flat, valleys, fractal, singlenode
-# mg_name = v6
-
-#    Water surface level of the world.
-#    type: int
-# water_level = 1
-
-#    From how far blocks are generated for clients, stated in mapblocks (16 nodes).
-#    type: int
-# max_block_generate_distance = 6
-
-#    Where the map generator stops.
-#    Please note:
-#    -    Limited to 31000 (setting above has no effect)
-#    -    The map generator works in groups of 80x80x80 nodes (5x5x5 MapBlocks).
-#    -    Those groups have an offset of -32, -32 nodes from the origin.
-#    -    Only groups which are within the map_generation_limit are generated
-#    type: int min: 0 max: 31000
-# map_generation_limit = 31000
-
-#    Global map generation attributes.
-#    In Mapgen v6 the 'decorations' flag controls all decorations except trees
-#    and junglegrass, in all other mapgens this flag controls all decorations.
-#    Flags that are not specified in the flag string are not modified from the default.
-#    Flags starting with 'no' are used to explicitly disable them.
-#    type: flags possible values: caves, dungeons, light, decorations, nocaves, nodungeons, nolight, nodecorations
-# mg_flags = caves,dungeons,light,decorations
-
-### Advanced
-
-#    Size of chunks to be generated at once by mapgen, stated in mapblocks (16 nodes).
-#    type: int
-# chunksize = 5
-
-#    Dump the mapgen debug infos.
+#    If enabled the server will perform map block occlusion culling based on
+#    on the eye position of the player. This can reduce the number of blocks
+#    sent to the client 50-80%. The client will not longer receive most invisible
+#    so that the utility of noclip mode is reduced.
 #    type: bool
-# enable_mapgen_debug_info = false
+# server_side_occlusion_culling = true
 
-#    Maximum number of blocks that can be queued for loading.
+#    Restricts the access of certain client-side functions on servers
+#    Combine these byteflags below to restrict client-side features:
+#    LOAD_CLIENT_MODS: 1 (disable client mods loading)
+#    CHAT_MESSAGES: 2 (disable send_chat_message call client-side)
+#    READ_ITEMDEFS: 4 (disable get_item_def call client-side)
+#    READ_NODEDEFS: 8 (disable get_node_def call client-side)
+#    LOOKUP_NODES_LIMIT: 16 (limits get_node call client-side to
+#    csm_restriction_noderange)
+#    READ_PLAYERINFO: 32 (disable get_player_names call client-side)
 #    type: int
-# emergequeue_limit_total = 256
+# csm_restriction_flags = 62
 
-#    Maximum number of blocks to be queued that are to be loaded from file.
-#    Set to blank for an appropriate amount to be chosen automatically.
+#    If the CSM restriction for node range is enabled, get_node calls are limited
+#    to this distance from the player to the node.
 #    type: int
-# emergequeue_limit_diskonly = 32
-
-#    Maximum number of blocks to be queued that are to be generated.
-#    Set to blank for an appropriate amount to be chosen automatically.
-#    type: int
-# emergequeue_limit_generate = 32
-
-#    Number of emerge threads to use. Make this field blank, or increase this number
-#    to use multiple threads. On multiprocessor systems, this will improve mapgen speed greatly
-#    at the cost of slightly buggy caves.
-#    type: int
-# num_emerge_threads = 1
-
-#    Noise parameters for biome API temperature, humidity and biome blend.
-#    type: noise_params
-# mg_biome_np_heat = 50, 50, (750, 750, 750), 5349, 3, 0.5, 2.0
-
-#    type: noise_params
-# mg_biome_np_heat_blend = 0, 1.5, (8, 8, 8), 13, 2, 1.0, 2.0
-
-#    type: noise_params
-# mg_biome_np_humidity = 50, 50, (750, 750, 750), 842, 3, 0.5, 2.0
-
-#    type: noise_params
-# mg_biome_np_humidity_blend = 0, 1.5, (8, 8, 8), 90003, 2, 1.0, 2.0
-
-#### Mapgen v5
-
-#    Controls width of tunnels, a smaller value creates wider tunnels.
-#    type: float
-# mgv5_cave_width = 0.125
-
-#    type: noise_params
-# mgv5_np_filler_depth = 0, 1, (150, 150, 150), 261, 4, 0.7, 2.0
-
-#    type: noise_params
-# mgv5_np_factor = 0, 1, (250, 250, 250), 920381, 3, 0.45, 2.0
-
-#    type: noise_params
-# mgv5_np_height = 0, 10, (250, 250, 250), 84174, 4, 0.5, 2.0
-
-#    type: noise_params
-# mgv5_np_cave1 = 0, 12, (50, 50, 50), 52534, 4, 0.5, 2.0
-
-#    type: noise_params
-# mgv5_np_cave2 = 0, 12, (50, 50, 50), 10325, 4, 0.5, 2.0
-
-#### Mapgen v6
-
-#    Map generation attributes specific to Mapgen v6.
-#    When snowbiomes are enabled jungles are automatically enabled, the 'jungles' flag is ignored.
-#    Flags that are not specified in the flag string are not modified from the default.
-#    Flags starting with 'no' are used to explicitly disable them.
-#    type: flags possible values: jungles, biomeblend, mudflow, snowbiomes, flat, trees, nojungles, nobiomeblend, nomudflow, nosnowbiomes, noflat, notrees
-# mgv6_spflags = jungles,biomeblend,mudflow,snowbiomes,trees
-
-#    Controls size of deserts and beaches in Mapgen v6.
-#    When snowbiomes are enabled 'mgv6_freq_desert' is ignored.
-#    type: float
-# mgv6_freq_desert = 0.45
-
-#    type: float
-# mgv6_freq_beach = 0.15
-
-#    type: noise_params
-# mgv6_np_terrain_base = -4, 20, (250, 250, 250), 82341, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgv6_np_terrain_higher = 20, 16, (500, 500, 500), 85039, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgv6_np_steepness = 0.85, 0.5, (125, 125, 125), -932, 5, 0.7, 2.0
-
-#    type: noise_params
-# mgv6_np_height_select = 0.5, 1, (250, 250, 250), 4213, 5, 0.69, 2.0
-
-#    type: noise_params
-# mgv6_np_mud = 4, 2, (200, 200, 200), 91013, 3, 0.55, 2.0
-
-#    type: noise_params
-# mgv6_np_beach = 0, 1, (250, 250, 250), 59420, 3, 0.50, 2.0
-
-#    type: noise_params
-# mgv6_np_biome = 0, 1, (500, 500, 500), 9130, 3, 0.50, 2.0
-
-#    type: noise_params
-# mgv6_np_cave = 6, 6, (250, 250, 250), 34329, 3, 0.50, 2.0
-
-#    type: noise_params
-# mgv6_np_humidity = 0.5, 0.5, (500, 500, 500), 72384, 3, 0.50, 2.0
-
-#    type: noise_params
-# mgv6_np_trees = 0, 1, (125, 125, 125), 2, 4, 0.66, 2.0
-
-#    type: noise_params
-# mgv6_np_apple_trees = 0, 1, (100, 100, 100), 342902, 3, 0.45, 2.0
-
-#### Mapgen v7
-
-#    Map generation attributes specific to Mapgen v7.
-#    The 'ridges' flag controls the rivers.
-#    Flags that are not specified in the flag string are not modified from the default.
-#    Flags starting with 'no' are used to explicitly disable them.
-#    type: flags possible values: mountains, ridges, nomountains, noridges
-# mgv7_spflags = mountains,ridges
-
-#    Controls width of tunnels, a smaller value creates wider tunnels.
-#    type: float
-# mgv7_cave_width = 0.2
-
-#    type: noise_params
-# mgv7_np_terrain_base = 4, 70, (600, 600, 600), 82341, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgv7_np_terrain_alt = 4, 25, (600, 600, 600), 5934, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgv7_np_terrain_persist = 0.6, 0.1, (2000, 2000, 2000), 539, 3, 0.6, 2.0
-
-#    type: noise_params
-# mgv7_np_height_select = -8, 16, (500, 500, 500), 4213, 6, 0.7, 2.0
-
-#    type: noise_params
-# mgv7_np_filler_depth = 0, 1.2, (150, 150, 150), 261, 3, 0.7, 2.0
-
-#    type: noise_params
-# mgv7_np_mount_height = 256, 112, (1000, 1000, 1000), 72449, 3, 0.6, 2.0
-
-#    type: noise_params
-# mgv7_np_ridge_uwater = 0, 1, (1000, 1000, 1000), 85039, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgv7_np_mountain = -0.6, 1, (250, 350, 250), 5333, 5, 0.63, 2.0
-
-#    type: noise_params
-# mgv7_np_ridge = 0, 1, (100, 100, 100), 6467, 4, 0.75, 2.0
-
-#    type: noise_params
-# mgv7_np_cave1 = 0, 12, (61, 61, 61), 52534, 3, 0.5, 2.0
-
-#    type: noise_params
-# mgv7_np_cave2 = 0, 12, (67, 67, 67), 10325, 3, 0.5, 2.0
-
-#### Mapgen flat
-
-#    Map generation attributes specific to Mapgen flat.
-#    Occasional lakes and hills can be added to the flat world.
-#    Flags that are not specified in the flag string are not modified from the default.
-#    Flags starting with 'no' are used to explicitly disable them.
-#    type: flags possible values: lakes, hills, , nolakes, nohills
-# mgflat_spflags =
-
-#    Y of flat ground.
-#    type: int
-# mgflat_ground_level = 8
-
-#    Y of upper limit of large pseudorandom caves.
-#    type: int
-# mgflat_large_cave_depth = -33
-
-#    Controls width of tunnels, a smaller value creates wider tunnels.
-#    type: float
-# mgflat_cave_width = 0.2
-
-#    Terrain noise threshold for lakes.
-#    Controls proportion of world area covered by lakes.
-#    Adjust towards 0.0 for a larger proportion.
-#    type: float
-# mgflat_lake_threshold = -0.45
-
-#    Controls steepness/depth of lake depressions.
-#    type: float
-# mgflat_lake_steepness = 48.0
-
-#    Terrain noise threshold for hills.
-#    Controls proportion of world area covered by hills.
-#    Adjust towards 0.0 for a larger proportion.
-#    type: float
-# mgflat_hill_threshold = 0.45
-
-#    Controls steepness/height of hills.
-#    type: float
-# mgflat_hill_steepness = 64.0
-
-#    Determines terrain shape.
-#    The 3 numbers in brackets control the scale of the
-#    terrain, the 3 numbers should be identical.
-#    type: noise_params
-# mgflat_np_terrain = 0, 1, (600, 600, 600), 7244, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgflat_np_filler_depth = 0, 1.2, (150, 150, 150), 261, 3, 0.7, 2.0
-
-#    type: noise_params
-# mgflat_np_cave1 = 0, 12, (61, 61, 61), 52534, 3, 0.5, 2.0
-
-#    type: noise_params
-# mgflat_np_cave2 = 0, 12, (67, 67, 67), 10325, 3, 0.5, 2.0
-
-#### Mapgen fractal
-
-#    Controls width of tunnels, a smaller value creates wider tunnels.
-#    type: float
-# mgfractal_cave_width = 0.2
-
-#    Choice of 18 fractals from 9 formulas.
-#    1 = 4D "Roundy" mandelbrot set.
-#    2 = 4D "Roundy" julia set.
-#    3 = 4D "Squarry" mandelbrot set.
-#    4 = 4D "Squarry" julia set.
-#    5 = 4D "Mandy Cousin" mandelbrot set.
-#    6 = 4D "Mandy Cousin" julia set.
-#    7 = 4D "Variation" mandelbrot set.
-#    8 = 4D "Variation" julia set.
-#    9 = 3D "Mandelbrot/Mandelbar" mandelbrot set.
-#    10 = 3D "Mandelbrot/Mandelbar" julia set.
-#    11 = 3D "Christmas Tree" mandelbrot set.
-#    12 = 3D "Christmas Tree" julia set.
-#    13 = 3D "Mandelbulb" mandelbrot set.
-#    14 = 3D "Mandelbulb" julia set.
-#    15 = 3D "Cosine Mandelbulb" mandelbrot set.
-#    16 = 3D "Cosine Mandelbulb" julia set.
-#    17 = 4D "Mandelbulb" mandelbrot set.
-#    18 = 4D "Mandelbulb" julia set.
-#    type: int min: 1 max: 18
-# mgfractal_fractal = 1
-
-#    Iterations of the recursive function.
-#    Controls the amount of fine detail.
-#    type: int
-# mgfractal_iterations = 11
-
-#    Approximate (X,Y,Z) scale of fractal in nodes.
-#    type: v3f
-# mgfractal_scale = (4096.0, 1024.0, 4096.0)
-
-#    (X,Y,Z) offset of fractal from world centre in units of 'scale'.
-#    Used to move a suitable spawn area of low land close to (0, 0).
-#    The default is suitable for mandelbrot sets, it needs to be edited for julia sets.
-#    Range roughly -2 to 2. Multiply by 'scale' for offset in nodes.
-#    type: v3f
-# mgfractal_offset = (1.79, 0.0, 0.0)
-
-#    W co-ordinate of the generated 3D slice of a 4D fractal.
-#    Determines which 3D slice of the 4D shape is generated.
-#    Has no effect on 3D fractals.
-#    Range roughly -2 to 2.
-#    type: float
-# mgfractal_slice_w = 0.0
-
-#    Julia set only: X component of hypercomplex constant determining julia shape.
-#    Range roughly -2 to 2.
-#    type: float
-# mgfractal_julia_x = 0.33
-
-#    Julia set only: Y component of hypercomplex constant determining julia shape.
-#    Range roughly -2 to 2.
-#    type: float
-# mgfractal_julia_y = 0.33
-
-#    Julia set only: Z component of hypercomplex constant determining julia shape.
-#    Range roughly -2 to 2.
-#    type: float
-# mgfractal_julia_z = 0.33
-
-#    Julia set only: W component of hypercomplex constant determining julia shape.
-#    Has no effect on 3D fractals.
-#    Range roughly -2 to 2.
-#    type: float
-# mgfractal_julia_w = 0.33
-
-#    type: noise_params
-# mgfractal_np_seabed = -14, 9, (600, 600, 600), 41900, 5, 0.6, 2.0
-
-#    type: noise_params
-# mgfractal_np_filler_depth = 0, 1.2, (150, 150, 150), 261, 3, 0.7, 2.0
-
-#    type: noise_params
-# mgfractal_np_cave1 = 0, 12, (61, 61, 61), 52534, 3, 0.5, 2.0
-
-#    type: noise_params
-# mgfractal_np_cave2 = 0, 12, (67, 67, 67), 10325, 3, 0.5, 2.0
-
-#### Mapgen Valleys
-
-##### General
-
-#    Map generation attributes specific to Mapgen Valleys.
-#    'altitude_chill' makes higher elevations colder, which may cause biome issues.
-#    'humid_rivers' modifies the humidity around rivers and in areas where water would tend to pool,
-#    it may interfere with delicately adjusted biomes.
-#    Flags that are not specified in the flag string are not modified from the default.
-#    Flags starting with 'no' are used to explicitly disable them.
-#    type: flags possible values: altitude_chill, noaltitude_chill, humid_rivers, nohumid_rivers
-# mg_valleys_spflags = altitude_chill,humid_rivers
-
-#    The altitude at which temperature drops by 20C
-#    type: int
-# mgvalleys_altitude_chill = 90
-
-#    Depth below which you'll find large caves.
-#    type: int
-# mgvalleys_large_cave_depth = -33
-
-#    Creates unpredictable lava features in caves.
-#    These can make mining difficult. Zero disables them. (0-10)
-#    type: int
-# mgvalleys_lava_features = 0
-
-#    Depth below which you'll find massive caves.
-#    type: int
-# mgvalleys_massive_cave_depth = -256
-
-#    How deep to make rivers
-#    type: int
-# mgvalleys_river_depth = 4
-
-#    How wide to make rivers
-#    type: int
-# mgvalleys_river_size = 5
-
-#    Creates unpredictable water features in caves.
-#    These can make mining difficult. Zero disables them. (0-10)
-#    type: int
-# mgvalleys_water_features = 0
-
-#    Controls width of tunnels, a smaller value creates wider tunnels.
-#    type: float
-# mgvalleys_cave_width = 0.2
-
-##### Noises
-
-#    Caves and tunnels form at the intersection of the two noises
-#    type: noise_params
-# mgvalleys_np_cave1 = 0, 12, (61, 61, 61), 52534, 3, 0.5, 2.0
-
-#    Caves and tunnels form at the intersection of the two noises
-#    type: noise_params
-# mgvalleys_np_cave2 = 0, 12, (67, 67, 67), 10325, 3, 0.5, 2.0
-
-#    The depth of dirt or other filler
-#    type: noise_params
-# mgvalleys_np_filler_depth = 0, 1.2, (256, 256, 256), 1605, 3, 0.5, 2.0
-
-#    Massive caves form here.
-#    type: noise_params
-# mgvalleys_np_massive_caves = 0, 1, (768, 256, 768), 59033, 6, 0.63, 2.0
-
-#    River noise -- rivers occur close to zero
-#    type: noise_params
-# mgvalleys_np_rivers = 0, 1, (256, 256, 256), -6050, 5, 0.6, 2.0
-
-#    Base terrain height
-#    type: noise_params
-# mgvalleys_np_terrain_height = -10, 50, (1024, 1024, 1024), 5202, 6, 0.4, 2.0
-
-#    Raises terrain to make valleys around the rivers
-#    type: noise_params
-# mgvalleys_np_valley_depth = 5, 4, (512, 512, 512), -1914, 1, 1.0, 2.0
-
-#    Slope and fill work together to modify the heights
-#    type: noise_params
-# mgvalleys_np_inter_valley_fill = 0, 1, (256, 512, 256), 1993, 6, 0.8, 2.0
-
-#    Amplifies the valleys
-#    type: noise_params
-# mgvalleys_np_valley_profile = 0.6, 0.5, (512, 512, 512), 777, 1, 1.0, 2.0
-
-#    Slope and fill work together to modify the heights
-#    type: noise_params
-# mgvalleys_np_inter_valley_slope = 0.5, 0.5, (128, 128, 128), 746, 1, 1.0, 2.0
+# csm_restriction_noderange = 0
 
 ## Security
 
 #    Prevent mods from doing insecure things like running shell commands.
 #    type: bool
-# secure.enable_security = false
+# secure.enable_security = true
 
 #    Comma-separated list of trusted mods that are allowed to access insecure
 #    functions even when mod security is on (via request_insecure_environment()).
 #    type: string
 # secure.trusted_mods =
 
-#    Comma-seperated list of mods that are allowed to access HTTP APIs, which
+#    Comma-separated list of mods that are allowed to access HTTP APIs, which
 #    allow them to upload and download data to/from the internet.
 #    type: string
 # secure.http_mods =
+
+## Advanced
+
+### Profiling
+
+#    Load the game profiler to collect game profiling data.
+#    Provides a /profiler command to access the compiled profile.
+#    Useful for mod developers and server operators.
+#    type: bool
+# profiler.load = false
+
+#    The default format in which profiles are being saved,
+#    when calling `/profiler save [format]` without format.
+#    type: enum values: txt, csv, lua, json, json_pretty
+# profiler.default_report_format = txt
+
+#    The file path relative to your worldpath in which profiles will be saved to.
+#    type: string
+# profiler.report_path = ""
+
+#### Instrumentation
+
+#    Instrument the methods of entities on registration.
+#    type: bool
+# instrument.entity = true
+
+#    Instrument the action function of Active Block Modifiers on registration.
+#    type: bool
+# instrument.abm = true
+
+#    Instrument the action function of Loading Block Modifiers on registration.
+#    type: bool
+# instrument.lbm = true
+
+#    Instrument chatcommands on registration.
+#    type: bool
+# instrument.chatcommand = true
+
+#    Instrument global callback functions on registration.
+#    (anything you pass to a minetest.register_*() function)
+#    type: bool
+# instrument.global_callback = true
+
+##### Advanced
+
+#    Instrument builtin.
+#    This is usually only needed by core/builtin contributors
+#    type: bool
+# instrument.builtin = false
+
+#    Have the profiler instrument itself:
+#    * Instrument an empty function.
+#    This estimates the overhead, that instrumentation is adding (+1 function call).
+#    * Instrument the sampler being used to update the statistics.
+#    type: bool
+# instrument.profiler = false
 
 #
 # Client and Server
@@ -1468,7 +1561,7 @@
 
 #    Set the language. Leave empty to use the system language.
 #    A restart is required after changing this.
-#    type: enum values: , be, cs, da, de, eo, es, et, fr, hu, id, it, ja, jbo, ko, ky, lt, nb, nl, pl, pt, pt_BR, ro, ru, tr, uk, zh_CN, zh_TW
+#    type: enum values: , be, ca, cs, da, de, dv, en, eo, es, et, fr, he, hu, id, it, ja, jbo, ko, ky, lt, ms, nb, nl, pl, pt, pt_BR, ro, ru, sl, sr_Cyrl, sv, sw, tr, uk, zh_CN, zh_TW
 # language =
 
 #    Level of logging to be written to debug.txt:
@@ -1479,7 +1572,7 @@
 #    -    action
 #    -    info
 #    -    verbose
-#    type: enum values: , warning, action, info, verbose
+#    type: enum values: , none, error, warning, action, info, verbose
 # debug_log_level = action
 
 #    IPv6 support.
@@ -1509,21 +1602,1418 @@
 #    type: bool
 # high_precision_fpu = true
 
+#    Changes the main menu UI:
+#    -   Full:  Multple singleplayer worlds, game choice, texture pack chooser, etc.
+#    -   Simple: One singleplayer world, no game or texture pack choosers. May be
+#    necessary for smaller screens.
+#    -   Auto: Simple on Android, full on everything else.
+#    type: enum values: auto, full, simple
+# main_menu_style = auto
+
 #    Replaces the default main menu with a custom one.
 #    type: string
 # main_menu_script =
 
+#    Print the engine's profiling data in regular intervals (in seconds).
+#    0 = disable. Useful for developers.
 #    type: int
-# main_menu_game_mgr = 0
+# profiler_print_interval = 0
 
+#
+# Mapgen
+#
+
+#    Name of map generator to be used when creating a new world.
+#    Creating a world in the main menu will override this.
+#    Current stable mapgens:
+#    v5, v6, v7 (except floatlands), flat, singlenode.
+#    'stable' means the terrain shape in an existing world will not be changed
+#    in the future. Note that biomes are defined by games and may still change.
+#    type: enum values: v5, v6, v7, valleys, carpathian, fractal, flat, singlenode
+# mg_name = v7
+
+#    Water surface level of the world.
 #    type: int
-# main_menu_mod_mgr = 1
+# water_level = 1
 
-#    type: string
-# modstore_download_url = https://forum.minetest.net/media/
+#    From how far blocks are generated for clients, stated in mapblocks (16 nodes).
+#    type: int
+# max_block_generate_distance = 6
 
-#    type: string
-# modstore_listmods_url = https://forum.minetest.net/mmdb/mods/
+#    Limit of map generation, in nodes, in all 6 directions from (0, 0, 0).
+#    Only mapchunks completely within the mapgen limit are generated.
+#    Value is stored per-world.
+#    type: int min: 0 max: 31000
+# mapgen_limit = 31000
 
-#    type: string
-# modstore_details_url = https://forum.minetest.net/mmdb/mod/*/
+#    Global map generation attributes.
+#    In Mapgen v6 the 'decorations' flag controls all decorations except trees
+#    and junglegrass, in all other mapgens this flag controls all decorations.
+#    Flags that are not enabled are not modified from the default.
+#    Flags starting with 'no' are used to explicitly disable them.
+#    type: flags possible values: caves, dungeons, light, decorations, biomes, nocaves, nodungeons, nolight, nodecorations, nobiomes
+# mg_flags = caves,dungeons,light,decorations,biomes
+
+#    Whether dungeons occasionally project from the terrain.
+#    type: bool
+# projecting_dungeons = true
+
+## Biome API temperature and humidity noise parameters
+
+#    Temperature variation for biomes.
+#    type: noise_params_2d
+# mg_biome_np_heat = {
+#    offset      = 50,
+#    scale       = 50,
+#    spread      = (1000, 1000, 1000),
+#    seed        = 5349,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Small-scale temperature variation for blending biomes on borders.
+#    type: noise_params_2d
+# mg_biome_np_heat_blend = {
+#    offset      = 0,
+#    scale       = 1.5,
+#    spread      = (8, 8, 8),
+#    seed        = 13,
+#    octaves     = 2,
+#    persistence = 1.0,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Humidity variation for biomes.
+#    type: noise_params_2d
+# mg_biome_np_humidity = {
+#    offset      = 50,
+#    scale       = 50,
+#    spread      = (1000, 1000, 1000),
+#    seed        = 842,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Small-scale humidity variation for blending biomes on borders.
+#    type: noise_params_2d
+# mg_biome_np_humidity_blend = {
+#    offset      = 0,
+#    scale       = 1.5,
+#    spread      = (8, 8, 8),
+#    seed        = 90003,
+#    octaves     = 2,
+#    persistence = 1.0,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+## Mapgen V5
+
+#    Map generation attributes specific to Mapgen v5.
+#    Flags that are not enabled are not modified from the default.
+#    Flags starting with 'no' are used to explicitly disable them.
+#    type: flags possible values: caverns, nocaverns
+# mgv5_spflags = caverns
+
+#    Controls width of tunnels, a smaller value creates wider tunnels.
+#    type: float
+# mgv5_cave_width = 0.09
+
+#    Y of upper limit of large caves.
+#    type: int
+# mgv5_large_cave_depth = -256
+
+#    Y of upper limit of lava in large caves.
+#    type: int
+# mgv5_lava_depth = -256
+
+#    Y-level of cavern upper limit.
+#    type: int
+# mgv5_cavern_limit = -256
+
+#    Y-distance over which caverns expand to full size.
+#    type: int
+# mgv5_cavern_taper = 256
+
+#    Defines full size of caverns, smaller values create larger caverns.
+#    type: float
+# mgv5_cavern_threshold = 0.7
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgv5_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgv5_dungeon_ymax = 31000
+
+### Noises
+
+#    Variation of biome filler depth.
+#    type: noise_params_2d
+# mgv5_np_filler_depth = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (150, 150, 150),
+#    seed        = 261,
+#    octaves     = 4,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of terrain vertical scale.
+#    When noise is < -0.55 terrain is near-flat.
+#    type: noise_params_2d
+# mgv5_np_factor = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (250, 250, 250),
+#    seed        = 920381,
+#    octaves     = 3,
+#    persistence = 0.45,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Y-level of average terrain surface.
+#    type: noise_params_2d
+# mgv5_np_height = {
+#    offset      = 0,
+#    scale       = 10,
+#    spread      = (250, 250, 250),
+#    seed        = 84174,
+#    octaves     = 4,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    First of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgv5_np_cave1 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (61, 61, 61),
+#    seed        = 52534,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Second of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgv5_np_cave2 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (67, 67, 67),
+#    seed        = 10325,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    3D noise defining giant caverns.
+#    type: noise_params_3d
+# mgv5_np_cavern = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (384, 128, 384),
+#    seed        = 723,
+#    octaves     = 5,
+#    persistence = 0.63,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    3D noise defining terrain.
+#    type: noise_params_3d
+# mgv5_np_ground = {
+#    offset      = 0,
+#    scale       = 40,
+#    spread      = (80, 80, 80),
+#    seed        = 983240,
+#    octaves     = 4,
+#    persistence = 0.55,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+## Mapgen V6
+
+#    Map generation attributes specific to Mapgen v6.
+#    The 'snowbiomes' flag enables the new 5 biome system.
+#    When the new biome system is enabled jungles are automatically enabled and
+#    the 'jungles' flag is ignored.
+#    Flags that are not enabled are not modified from the default.
+#    Flags starting with 'no' are used to explicitly disable them.
+#    type: flags possible values: jungles, biomeblend, mudflow, snowbiomes, flat, trees, nojungles, nobiomeblend, nomudflow, nosnowbiomes, noflat, notrees
+# mgv6_spflags = jungles,biomeblend,mudflow,snowbiomes,trees
+
+#    Deserts occur when np_biome exceeds this value.
+#    When the new biome system is enabled, this is ignored.
+#    type: float
+# mgv6_freq_desert = 0.45
+
+#    Sandy beaches occur when np_beach exceeds this value.
+#    type: float
+# mgv6_freq_beach = 0.15
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgv6_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgv6_dungeon_ymax = 31000
+
+### Noises
+
+#    Y-level of lower terrain and seabed.
+#    type: noise_params_2d
+# mgv6_np_terrain_base = {
+#    offset      = -4,
+#    scale       = 20,
+#    spread      = (250, 250, 250),
+#    seed        = 82341,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Y-level of higher terrain that creates cliffs.
+#    type: noise_params_2d
+# mgv6_np_terrain_higher = {
+#    offset      = 20,
+#    scale       = 16,
+#    spread      = (500, 500, 500),
+#    seed        = 85039,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Varies steepness of cliffs.
+#    type: noise_params_2d
+# mgv6_np_steepness = {
+#    offset      = 0.85,
+#    scale       = 0.5,
+#    spread      = (125, 125, 125),
+#    seed        = -932,
+#    octaves     = 5,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines distribution of higher terrain.
+#    type: noise_params_2d
+# mgv6_np_height_select = {
+#    offset      = 0.5,
+#    scale       = 1,
+#    spread      = (250, 250, 250),
+#    seed        = 4213,
+#    octaves     = 5,
+#    persistence = 0.69,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Varies depth of biome surface nodes.
+#    type: noise_params_2d
+# mgv6_np_mud = {
+#    offset      = 4,
+#    scale       = 2,
+#    spread      = (200, 200, 200),
+#    seed        = 91013,
+#    octaves     = 3,
+#    persistence = 0.55,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines areas with sandy beaches.
+#    type: noise_params_2d
+# mgv6_np_beach = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (250, 250, 250),
+#    seed        = 59420,
+#    octaves     = 3,
+#    persistence = 0.50,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Temperature variation for biomes.
+#    type: noise_params_2d
+# mgv6_np_biome = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (500, 500, 500),
+#    seed        = 9130,
+#    octaves     = 3,
+#    persistence = 0.50,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of number of caves.
+#    type: noise_params_2d
+# mgv6_np_cave = {
+#    offset      = 6,
+#    scale       = 6,
+#    spread      = (250, 250, 250),
+#    seed        = 34329,
+#    octaves     = 3,
+#    persistence = 0.50,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Humidity variation for biomes.
+#    type: noise_params_2d
+# mgv6_np_humidity = {
+#    offset      = 0.5,
+#    scale       = 0.5,
+#    spread      = (500, 500, 500),
+#    seed        = 72384,
+#    octaves     = 3,
+#    persistence = 0.50,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines tree areas and tree density.
+#    type: noise_params_2d
+# mgv6_np_trees = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (125, 125, 125),
+#    seed        = 2,
+#    octaves     = 4,
+#    persistence = 0.66,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines areas where trees have apples.
+#    type: noise_params_2d
+# mgv6_np_apple_trees = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (100, 100, 100),
+#    seed        = 342902,
+#    octaves     = 3,
+#    persistence = 0.45,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+## Mapgen V7
+
+#    Map generation attributes specific to Mapgen v7.
+#    'ridges' enables the rivers.
+#    Flags that are not enabled are not modified from the default.
+#    Flags starting with 'no' are used to explicitly disable them.
+#    type: flags possible values: mountains, ridges, floatlands, caverns, nomountains, noridges, nofloatlands, nocaverns
+# mgv7_spflags = mountains,ridges,nofloatlands,caverns
+
+#    Y of mountain density gradient zero level. Used to shift mountains vertically.
+#    type: int
+# mgv7_mount_zero_level = 0
+
+#    Controls width of tunnels, a smaller value creates wider tunnels.
+#    type: float
+# mgv7_cave_width = 0.09
+
+#    Y of upper limit of large caves.
+#    type: int
+# mgv7_large_cave_depth = -33
+
+#    Y of upper limit of lava in large caves.
+#    type: int
+# mgv7_lava_depth = -256
+
+#    Controls the density of mountain-type floatlands.
+#    Is a noise offset added to the 'mgv7_np_mountain' noise value.
+#    type: float
+# mgv7_float_mount_density = 0.6
+
+#    Typical maximum height, above and below midpoint, of floatland mountains.
+#    type: float
+# mgv7_float_mount_height = 128.0
+
+#    Alters how mountain-type floatlands taper above and below midpoint.
+#    type: float
+# mgv7_float_mount_exponent = 0.75
+
+#    Y-level of floatland midpoint and lake surface.
+#    type: int
+# mgv7_floatland_level = 1280
+
+#    Y-level to which floatland shadows extend.
+#    type: int
+# mgv7_shadow_limit = 1024
+
+#    Y-level of cavern upper limit.
+#    type: int
+# mgv7_cavern_limit = -256
+
+#    Y-distance over which caverns expand to full size.
+#    type: int
+# mgv7_cavern_taper = 256
+
+#    Defines full size of caverns, smaller values create larger caverns.
+#    type: float
+# mgv7_cavern_threshold = 0.7
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgv7_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgv7_dungeon_ymax = 31000
+
+### Noises
+
+#    Y-level of higher terrain that creates cliffs.
+#    type: noise_params_2d
+# mgv7_np_terrain_base = {
+#    offset      = 4,
+#    scale       = 70,
+#    spread      = (600, 600, 600),
+#    seed        = 82341,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Y-level of lower terrain and seabed.
+#    type: noise_params_2d
+# mgv7_np_terrain_alt = {
+#    offset      = 4,
+#    scale       = 25,
+#    spread      = (600, 600, 600),
+#    seed        = 5934,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Varies roughness of terrain.
+#    Defines the 'persistence' value for terrain_base and terrain_alt noises.
+#    type: noise_params_2d
+# mgv7_np_terrain_persist = {
+#    offset      = 0.6,
+#    scale       = 0.1,
+#    spread      = (2000, 2000, 2000),
+#    seed        = 539,
+#    octaves     = 3,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines distribution of higher terrain and steepness of cliffs.
+#    type: noise_params_2d
+# mgv7_np_height_select = {
+#    offset      = -8,
+#    scale       = 16,
+#    spread      = (500, 500, 500),
+#    seed        = 4213,
+#    octaves     = 6,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of biome filler depth.
+#    type: noise_params_2d
+# mgv7_np_filler_depth = {
+#    offset      = 0,
+#    scale       = 1.2,
+#    spread      = (150, 150, 150),
+#    seed        = 261,
+#    octaves     = 3,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of maximum mountain height (in nodes).
+#    type: noise_params_2d
+# mgv7_np_mount_height = {
+#    offset      = 256,
+#    scale       = 112,
+#    spread      = (1000, 1000, 1000),
+#    seed        = 72449,
+#    octaves     = 3,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines large-scale river channel structure.
+#    type: noise_params_2d
+# mgv7_np_ridge_uwater = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (1000, 1000, 1000),
+#    seed        = 85039,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Defines areas of floatland smooth terrain.
+#    Smooth floatlands occur when noise > 0.
+#    type: noise_params_2d
+# mgv7_np_floatland_base = {
+#    offset      = -0.6,
+#    scale       = 1.5,
+#    spread      = (600, 600, 600),
+#    seed        = 114,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of hill height and lake depth on floatland smooth terrain.
+#    type: noise_params_2d
+# mgv7_np_float_base_height = {
+#    offset      = 48,
+#    scale       = 24,
+#    spread      = (300, 300, 300),
+#    seed        = 907,
+#    octaves     = 4,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    3D noise defining mountain structure and height.
+#    Also defines structure of floatland mountain terrain.
+#    type: noise_params_3d
+# mgv7_np_mountain = {
+#    offset      = -0.6,
+#    scale       = 1,
+#    spread      = (250, 350, 250),
+#    seed        = 5333,
+#    octaves     = 5,
+#    persistence = 0.63,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    3D noise defining structure of river canyon walls.
+#    type: noise_params_3d
+# mgv7_np_ridge = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (100, 100, 100),
+#    seed        = 6467,
+#    octaves     = 4,
+#    persistence = 0.75,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    3D noise defining giant caverns.
+#    type: noise_params_3d
+# mgv7_np_cavern = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (384, 128, 384),
+#    seed        = 723,
+#    octaves     = 5,
+#    persistence = 0.63,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    First of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgv7_np_cave1 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (61, 61, 61),
+#    seed        = 52534,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Second of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgv7_np_cave2 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (67, 67, 67),
+#    seed        = 10325,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+## Mapgen Carpathian
+
+#    Map generation attributes specific to Mapgen Carpathian.
+#    Flags that are not enabled are not modified from the default.
+#    Flags starting with 'no' are used to explicitly disable them.
+#    type: flags possible values: caverns, nocaverns
+# mgcarpathian_spflags = caverns
+
+#    Defines the base ground level.
+#    type: float
+# mgcarpathian_base_level = 12.0
+
+#    Controls width of tunnels, a smaller value creates wider tunnels.
+#    type: float
+# mgcarpathian_cave_width = 0.09
+
+#    Y of upper limit of large caves.
+#    type: int
+# mgcarpathian_large_cave_depth = -33
+
+#    Y of upper limit of lava in large caves.
+#    type: int
+# mgcarpathian_lava_depth = -256
+
+#    Y-level of cavern upper limit.
+#    type: int
+# mgcarpathian_cavern_limit = -256
+
+#    Y-distance over which caverns expand to full size.
+#    type: int
+# mgcarpathian_cavern_taper = 256
+
+#    Defines full size of caverns, smaller values create larger caverns.
+#    type: float
+# mgcarpathian_cavern_threshold = 0.7
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgcarpathian_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgcarpathian_dungeon_ymax = 31000
+
+### Noises
+
+#    Variation of biome filler depth.
+#    type: noise_params_2d
+# mgcarpathian_np_filler_depth = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (128, 128, 128),
+#    seed        = 261,
+#    octaves     = 3,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    First of 4 2D noises that together define hill/mountain range height.
+#    type: noise_params_2d
+# mgcarpathian_np_height1 = {
+#    offset      = 0,
+#    scale       = 5,
+#    spread      = (251, 251, 251),
+#    seed        = 9613,
+#    octaves     = 5,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Second of 4 2D noises that together define hill/mountain range height.
+#    type: noise_params_2d
+# mgcarpathian_np_height2 = {
+#    offset      = 0,
+#    scale       = 5,
+#    spread      = (383, 383, 383),
+#    seed        = 1949,
+#    octaves     = 5,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Third of 4 2D noises that together define hill/mountain range height.
+#    type: noise_params_2d
+# mgcarpathian_np_height3 = {
+#    offset      = 0,
+#    scale       = 5,
+#    spread      = (509, 509, 509),
+#    seed        = 3211,
+#    octaves     = 5,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Fourth of 4 2D noises that together define hill/mountain range height.
+#    type: noise_params_2d
+# mgcarpathian_np_height4 = {
+#    offset      = 0,
+#    scale       = 5,
+#    spread      = (631, 631, 631),
+#    seed        = 1583,
+#    octaves     = 5,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    2D noise that controls the size/occurance of rolling hills.
+#    type: noise_params_2d
+# mgcarpathian_np_hills_terrain = {
+#    offset      = 1,
+#    scale       = 1,
+#    spread      = (1301, 1301, 1301),
+#    seed        = 1692,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    2D noise that controls the size/occurance of ridged mountain ranges.
+#    type: noise_params_2d
+# mgcarpathian_np_ridge_terrain = {
+#    offset      = 1,
+#    scale       = 1,
+#    spread      = (1889, 1889, 1889),
+#    seed        = 3568,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    2D noise that controls the size/occurance of step mountain ranges.
+#    type: noise_params_2d
+# mgcarpathian_np_step_terrain = {
+#    offset      = 1,
+#    scale       = 1,
+#    spread      = (1889, 1889, 1889),
+#    seed        = 4157,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    2D noise that controls the shape/size of rolling hills.
+#    type: noise_params_2d
+# mgcarpathian_np_hills = {
+#    offset      = 0,
+#    scale       = 3,
+#    spread      = (257, 257, 257),
+#    seed        = 6604,
+#    octaves     = 6,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    2D noise that controls the shape/size of ridged mountains.
+#    type: noise_params_2d
+# mgcarpathian_np_ridge_mnt = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (743, 743, 743),
+#    seed        = 5520,
+#    octaves     = 6,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    2D noise that controls the shape/size of step mountains.
+#    type: noise_params_2d
+# mgcarpathian_np_step_mnt = {
+#    offset      = 0,
+#    scale       = 8,
+#    spread      = (509, 509, 509),
+#    seed        = 2590,
+#    octaves     = 6,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    3D noise for mountain overhangs, cliffs, etc. Usually small variations.
+#    type: noise_params_3d
+# mgcarpathian_np_mnt_var = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (499, 499, 499),
+#    seed        = 2490,
+#    octaves     = 5,
+#    persistence = 0.55,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    First of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgcarpathian_np_cave1 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (61, 61, 61),
+#    seed        = 52534,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Second of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgcarpathian_np_cave2 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (67, 67, 67),
+#    seed        = 10325,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    3D noise defining giant caverns.
+#    type: noise_params_3d
+# mgcarpathian_np_cavern = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (384, 128, 384),
+#    seed        = 723,
+#    octaves     = 5,
+#    persistence = 0.63,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+## Mapgen Flat
+
+#    Map generation attributes specific to Mapgen flat.
+#    Occasional lakes and hills can be added to the flat world.
+#    Flags that are not enabled are not modified from the default.
+#    Flags starting with 'no' are used to explicitly disable them.
+#    type: flags possible values: lakes, hills, nolakes, nohills
+# mgflat_spflags = nolakes,nohills
+
+#    Y of flat ground.
+#    type: int
+# mgflat_ground_level = 8
+
+#    Y of upper limit of large caves.
+#    type: int
+# mgflat_large_cave_depth = -33
+
+#    Y of upper limit of lava in large caves.
+#    type: int
+# mgflat_lava_depth = -256
+
+#    Controls width of tunnels, a smaller value creates wider tunnels.
+#    type: float
+# mgflat_cave_width = 0.09
+
+#    Terrain noise threshold for lakes.
+#    Controls proportion of world area covered by lakes.
+#    Adjust towards 0.0 for a larger proportion.
+#    type: float
+# mgflat_lake_threshold = -0.45
+
+#    Controls steepness/depth of lake depressions.
+#    type: float
+# mgflat_lake_steepness = 48.0
+
+#    Terrain noise threshold for hills.
+#    Controls proportion of world area covered by hills.
+#    Adjust towards 0.0 for a larger proportion.
+#    type: float
+# mgflat_hill_threshold = 0.45
+
+#    Controls steepness/height of hills.
+#    type: float
+# mgflat_hill_steepness = 64.0
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgflat_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgflat_dungeon_ymax = 31000
+
+### Noises
+
+#    Defines location and terrain of optional hills and lakes.
+#    type: noise_params_2d
+# mgflat_np_terrain = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (600, 600, 600),
+#    seed        = 7244,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of biome filler depth.
+#    type: noise_params_2d
+# mgflat_np_filler_depth = {
+#    offset      = 0,
+#    scale       = 1.2,
+#    spread      = (150, 150, 150),
+#    seed        = 261,
+#    octaves     = 3,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    First of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgflat_np_cave1 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (61, 61, 61),
+#    seed        = 52534,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Second of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgflat_np_cave2 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (67, 67, 67),
+#    seed        = 10325,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+## Mapgen Fractal
+
+#    Controls width of tunnels, a smaller value creates wider tunnels.
+#    type: float
+# mgfractal_cave_width = 0.09
+
+#    Y of upper limit of large caves.
+#    type: int
+# mgfractal_large_cave_depth = -33
+
+#    Y of upper limit of lava in large caves.
+#    type: int
+# mgfractal_lava_depth = -256
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgfractal_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgfractal_dungeon_ymax = 31000
+
+#    Selects one of 18 fractal types.
+#    1 = 4D "Roundy" mandelbrot set.
+#    2 = 4D "Roundy" julia set.
+#    3 = 4D "Squarry" mandelbrot set.
+#    4 = 4D "Squarry" julia set.
+#    5 = 4D "Mandy Cousin" mandelbrot set.
+#    6 = 4D "Mandy Cousin" julia set.
+#    7 = 4D "Variation" mandelbrot set.
+#    8 = 4D "Variation" julia set.
+#    9 = 3D "Mandelbrot/Mandelbar" mandelbrot set.
+#    10 = 3D "Mandelbrot/Mandelbar" julia set.
+#    11 = 3D "Christmas Tree" mandelbrot set.
+#    12 = 3D "Christmas Tree" julia set.
+#    13 = 3D "Mandelbulb" mandelbrot set.
+#    14 = 3D "Mandelbulb" julia set.
+#    15 = 3D "Cosine Mandelbulb" mandelbrot set.
+#    16 = 3D "Cosine Mandelbulb" julia set.
+#    17 = 4D "Mandelbulb" mandelbrot set.
+#    18 = 4D "Mandelbulb" julia set.
+#    type: int min: 1 max: 18
+# mgfractal_fractal = 1
+
+#    Iterations of the recursive function.
+#    Increasing this increases the amount of fine detail, but also
+#    increases processing load.
+#    At iterations = 20 this mapgen has a similar load to mapgen V7.
+#    type: int
+# mgfractal_iterations = 11
+
+#    (X,Y,Z) scale of fractal in nodes.
+#    Actual fractal size will be 2 to 3 times larger.
+#    These numbers can be made very large, the fractal does
+#    not have to fit inside the world.
+#    Increase these to 'zoom' into the detail of the fractal.
+#    Default is for a vertically-squashed shape suitable for
+#    an island, set all 3 numbers equal for the raw shape.
+#    type: v3f
+# mgfractal_scale = (4096.0, 1024.0, 4096.0)
+
+#    (X,Y,Z) offset of fractal from world center in units of 'scale'.
+#    Can be used to move a desired point to (0, 0) to create a
+#    suitable spawn point, or to allow 'zooming in' on a desired
+#    point by increasing 'scale'.
+#    The default is tuned for a suitable spawn point for mandelbrot
+#    sets with default parameters, it may need altering in other
+#    situations.
+#    Range roughly -2 to 2. Multiply by 'scale' for offset in nodes.
+#    type: v3f
+# mgfractal_offset = (1.79, 0.0, 0.0)
+
+#    W coordinate of the generated 3D slice of a 4D fractal.
+#    Determines which 3D slice of the 4D shape is generated.
+#    Alters the shape of the fractal.
+#    Has no effect on 3D fractals.
+#    Range roughly -2 to 2.
+#    type: float
+# mgfractal_slice_w = 0.0
+
+#    Julia set only.
+#    X component of hypercomplex constant.
+#    Alters the shape of the fractal.
+#    Range roughly -2 to 2.
+#    type: float
+# mgfractal_julia_x = 0.33
+
+#    Julia set only.
+#    Y component of hypercomplex constant.
+#    Alters the shape of the fractal.
+#    Range roughly -2 to 2.
+#    type: float
+# mgfractal_julia_y = 0.33
+
+#    Julia set only.
+#    Z component of hypercomplex constant.
+#    Alters the shape of the fractal.
+#    Range roughly -2 to 2.
+#    type: float
+# mgfractal_julia_z = 0.33
+
+#    Julia set only.
+#    W component of hypercomplex constant.
+#    Alters the shape of the fractal.
+#    Has no effect on 3D fractals.
+#    Range roughly -2 to 2.
+#    type: float
+# mgfractal_julia_w = 0.33
+
+### Noises
+
+#    Y-level of seabed.
+#    type: noise_params_2d
+# mgfractal_np_seabed = {
+#    offset      = -14,
+#    scale       = 9,
+#    spread      = (600, 600, 600),
+#    seed        = 41900,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Variation of biome filler depth.
+#    type: noise_params_2d
+# mgfractal_np_filler_depth = {
+#    offset      = 0,
+#    scale       = 1.2,
+#    spread      = (150, 150, 150),
+#    seed        = 261,
+#    octaves     = 3,
+#    persistence = 0.7,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    First of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgfractal_np_cave1 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (61, 61, 61),
+#    seed        = 52534,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Second of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgfractal_np_cave2 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (67, 67, 67),
+#    seed        = 10325,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+## Mapgen Valleys
+
+#    Map generation attributes specific to Mapgen Valleys.
+#    'altitude_chill': Reduces heat with altitude.
+#    'humid_rivers': Increases humidity around rivers and where water pools.
+#    'vary_river_depth': If enabled, low humidity and high heat causes rivers
+#    to become shallower and occasionally dry.
+#    'altitude_dry': Reduces humidity with altitude.
+#    type: flags possible values: altitude_chill, noaltitude_chill, humid_rivers, nohumid_rivers, vary_river_depth, novary_river_depth, altitude_dry, noaltitude_dry
+# mgvalleys_spflags = altitude_chill,humid_rivers,vary_river_depth,altitude_dry
+
+#    The vertical distance over which heat drops by 20 if 'altitude_chill' is
+#    enabled. Also the vertical distance over which humidity drops by 10 if
+#    'altitude_dry' is enabled.
+#    type: int
+# mgvalleys_altitude_chill = 90
+
+#    Depth below which you'll find large caves.
+#    type: int
+# mgvalleys_large_cave_depth = -33
+
+#    Y of upper limit of lava in large caves.
+#    type: int
+# mgvalleys_lava_depth = 1
+
+#    Depth below which you'll find giant caverns.
+#    type: int
+# mgvalleys_cavern_limit = -256
+
+#    Y-distance over which caverns expand to full size.
+#    type: int
+# mgvalleys_cavern_taper = 192
+
+#    Defines full size of caverns, smaller values create larger caverns.
+#    type: float
+# mgvalleys_cavern_threshold = 0.6
+
+#    How deep to make rivers.
+#    type: int
+# mgvalleys_river_depth = 4
+
+#    How wide to make rivers.
+#    type: int
+# mgvalleys_river_size = 5
+
+#    Controls width of tunnels, a smaller value creates wider tunnels.
+#    type: float
+# mgvalleys_cave_width = 0.09
+
+#    Lower Y limit of dungeons.
+#    type: int
+# mgvalleys_dungeon_ymin = -31000
+
+#    Upper Y limit of dungeons.
+#    type: int
+# mgvalleys_dungeon_ymax = 63
+
+### Noises
+
+#    First of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgvalleys_np_cave1 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (61, 61, 61),
+#    seed        = 52534,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Second of two 3D noises that together define tunnels.
+#    type: noise_params_3d
+# mgvalleys_np_cave2 = {
+#    offset      = 0,
+#    scale       = 12,
+#    spread      = (67, 67, 67),
+#    seed        = 10325,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    The depth of dirt or other biome filler node.
+#    type: noise_params_2d
+# mgvalleys_np_filler_depth = {
+#    offset      = 0,
+#    scale       = 1.2,
+#    spread      = (256, 256, 256),
+#    seed        = 1605,
+#    octaves     = 3,
+#    persistence = 0.5,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    3D noise defining giant caverns.
+#    type: noise_params_3d
+# mgvalleys_np_cavern = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (768, 256, 768),
+#    seed        = 59033,
+#    octaves     = 6,
+#    persistence = 0.63,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Defines large-scale river channel structure.
+#    type: noise_params_2d
+# mgvalleys_np_rivers = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (256, 256, 256),
+#    seed        = -6050,
+#    octaves     = 5,
+#    persistence = 0.6,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Base terrain height.
+#    type: noise_params_2d
+# mgvalleys_np_terrain_height = {
+#    offset      = -10,
+#    scale       = 50,
+#    spread      = (1024, 1024, 1024),
+#    seed        = 5202,
+#    octaves     = 6,
+#    persistence = 0.4,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Raises terrain to make valleys around the rivers.
+#    type: noise_params_2d
+# mgvalleys_np_valley_depth = {
+#    offset      = 5,
+#    scale       = 4,
+#    spread      = (512, 512, 512),
+#    seed        = -1914,
+#    octaves     = 1,
+#    persistence = 1.0,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Slope and fill work together to modify the heights.
+#    type: noise_params_3d
+# mgvalleys_np_inter_valley_fill = {
+#    offset      = 0,
+#    scale       = 1,
+#    spread      = (256, 512, 256),
+#    seed        = 1993,
+#    octaves     = 6,
+#    persistence = 0.8,
+#    lacunarity  = 2.0,
+#    flags       = 
+# }
+
+#    Amplifies the valleys.
+#    type: noise_params_2d
+# mgvalleys_np_valley_profile = {
+#    offset      = 0.6,
+#    scale       = 0.5,
+#    spread      = (512, 512, 512),
+#    seed        = 777,
+#    octaves     = 1,
+#    persistence = 1.0,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+#    Slope and fill work together to modify the heights.
+#    type: noise_params_2d
+# mgvalleys_np_inter_valley_slope = {
+#    offset      = 0.5,
+#    scale       = 0.5,
+#    spread      = (128, 128, 128),
+#    seed        = 746,
+#    octaves     = 1,
+#    persistence = 1.0,
+#    lacunarity  = 2.0,
+#    flags       = eased
+# }
+
+## Advanced
+
+#    Size of mapchunks generated by mapgen, stated in mapblocks (16 nodes).
+#    WARNING!: There is no benefit, and there are several dangers, in
+#    increasing this value above 5.
+#    Reducing this value increases cave and dungeon density.
+#    Altering this value is for special usage, leaving it unchanged is
+#    recommended.
+#    type: int
+# chunksize = 5
+
+#    Dump the mapgen debug information.
+#    type: bool
+# enable_mapgen_debug_info = false
+
+#    Maximum number of blocks that can be queued for loading.
+#    type: int
+# emergequeue_limit_total = 512
+
+#    Maximum number of blocks to be queued that are to be loaded from file.
+#    Set to blank for an appropriate amount to be chosen automatically.
+#    type: int
+# emergequeue_limit_diskonly = 64
+
+#    Maximum number of blocks to be queued that are to be generated.
+#    Set to blank for an appropriate amount to be chosen automatically.
+#    type: int
+# emergequeue_limit_generate = 64
+
+#    Number of emerge threads to use.
+#    Make this field blank or 0, or increase this number to use multiple threads.
+#    On multiprocessor systems, this will improve mapgen speed greatly at the cost
+#    of slightly buggy caves.
+#    type: int
+# num_emerge_threads = 0
+
+#
+# Content Store
+#
+
+#    Show packages in the content store that do not qualify as 'free software'
+#    as defined by the Free Software Foundation.
+#    type: bool
+# show_nonfree_packages = false
+

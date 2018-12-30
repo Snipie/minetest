@@ -17,18 +17,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef GAME_PARAMS_H
-#define GAME_PARAMS_H
+#pragma once
 
 #include "irrlichttypes.h"
 
 struct SubgameSpec;
 
-struct GameParams {
+struct GameParams
+{
 	u16 socket_port;
 	std::string world_path;
 	SubgameSpec game_spec;
 	bool is_dedicated_server;
 };
-
-#endif

@@ -17,8 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef S_ITEM_H_
-#define S_ITEM_H_
+#pragma once
 
 #include "cpp_api/s_base.h"
 #include "irr_v3d.h"
@@ -52,11 +51,13 @@ public:
 protected:
 	friend class LuaItemStack;
 	friend class ModApiItemMod;
+	friend class LuaRaycast;
 
-	bool getItemCallback(const char *name, const char *callbackname);
-	void pushPointedThing(const PointedThing& pointed);
+	bool getItemCallback(const char *name, const char *callbackname, const v3s16 *p = nullptr);
+	/*!
+	 * Pushes a `pointed_thing` tabe to the stack.
+	 * \param hitpoint If true, the exact pointing location is also pushed
+	 */
+	void pushPointedThing(const PointedThing &pointed, bool hitpoint = false);
 
 };
-
-
-#endif /* S_ITEM_H_ */

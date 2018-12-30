@@ -2,7 +2,7 @@
 
 core.detached_inventories = {}
 
-function core.create_detached_inventory(name, callbacks)
+function core.create_detached_inventory(name, callbacks, player_name)
 	local stuff = {}
 	stuff.name = name
 	if callbacks then
@@ -15,6 +15,10 @@ function core.create_detached_inventory(name, callbacks)
 	end
 	stuff.mod_origin = core.get_current_modname() or "??"
 	core.detached_inventories[name] = stuff
-	return core.create_detached_inventory_raw(name)
+	return core.create_detached_inventory_raw(name, player_name)
 end
 
+function core.remove_detached_inventory(name)
+	core.detached_inventories[name] = nil
+	return core.remove_detached_inventory_raw(name)
+end

@@ -17,8 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef CONSTANTS_HEADER
-#define CONSTANTS_HEADER
+#pragma once
 
 /*
 	All kinds of constants.
@@ -72,7 +71,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // floating-point and integer positions, which potentially give wrong
 // results. (negative coordinates, values between nodes, ...)
 // Use floatToInt(p, BS) and intToFloat(p, BS).
-#define BS (10.0)
+#define BS 10.0f
 
 // Dimension of a MapBlock
 #define MAP_BLOCKSIZE 16
@@ -80,18 +79,21 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // the main loop (related to TempMods and day/night)
 //#define MAP_BLOCKSIZE 32
 
+// Player step height in nodes
+#define PLAYER_DEFAULT_STEPHEIGHT 0.6f
+
 /*
     Old stuff that shouldn't be hardcoded
 */
 
 // Size of player's main inventory
-#define PLAYER_INVENTORY_SIZE (8*4)
+#define PLAYER_INVENTORY_SIZE (8 * 4)
 
-// Maximum hit points of a player
-#define PLAYER_MAX_HP 20
+// Default maximum hit points of a player
+#define PLAYER_MAX_HP_DEFAULT 20
 
-// Maximal breath of a player
-#define PLAYER_MAX_BREATH 11
+// Default maximal breath of a player
+#define PLAYER_MAX_BREATH_DEFAULT 11
 
 // Number of different files to try to save a player to if the first fails
 // (because of a case-insensitive filesystem)
@@ -110,10 +112,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 // TODO: implement dpi-based scaling for windows and remove this hack
 #if defined(_WIN32)
-	#define TTF_DEFAULT_FONT_SIZE   (18)
+#define TTF_DEFAULT_FONT_SIZE (18)
 #else
-	#define TTF_DEFAULT_FONT_SIZE	(15)
+#define TTF_DEFAULT_FONT_SIZE (16)
 #endif
-#define DEFAULT_FONT_SIZE       (10)
-
-#endif
+#define DEFAULT_FONT_SIZE (10)

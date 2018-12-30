@@ -17,17 +17,18 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef UTIL_STRING_HEADER
-#define UTIL_STRING_HEADER
+#pragma once
 
 #include "irrlichttypes_bloated.h"
-#include <stdlib.h>
+#include <cstdlib>
 #include <string>
 #include <cstring>
 #include <vector>
 #include <map>
 #include <sstream>
+#include <iomanip>
 #include <cctype>
+#include <unordered_map>
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -53,7 +54,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	(((unsigned char)(x) < 0xe0) ? 2 :     \
 	(((unsigned char)(x) < 0xf0) ? 3 : 4))
 
-typedef std::map<std::string, std::string> StringMap;
+typedef std::unordered_map<std::string, std::string> StringMap;
 
 struct FlagDesc {
 	const char *name;
@@ -84,7 +85,8 @@ std::string writeFlagString(u32 flags, const FlagDesc *flagdesc, u32 flagmask);
 size_t mystrlcpy(char *dst, const char *src, size_t size);
 char *mystrtok_r(char *s, const char *sep, char **lasts);
 u64 read_seed(const char *str);
-bool parseColorString(const std::string &value, video::SColor &color, bool quiet);
+bool parseColorString(const std::string &value, video::SColor &color, bool quiet,
+		unsigned char default_alpha = 0xff);
 
 
 /**
@@ -202,6 +204,56 @@ inline bool str_starts_with(const std::basic_string<T> &str,
 			case_insensitive);
 }
 
+
+/**
+ * Check whether \p str ends with the string suffix. If \p case_insensitive
+ * is true then the check is case insensitve (default is false; i.e. case is
+ * significant).
+ *
+ * @param str
+ * @param suffix
+ * @param case_insensitive
+ * @return true if the str begins with suffix
+ */
+template <typename T>
+inline bool str_ends_with(const std::basic_string<T> &str,
+		const std::basic_string<T> &suffix,
+		bool case_insensitive = false)
+{
+	if (str.size() < suffix.size())
+		return false;
+
+	size_t start = str.size() - suffix.size();
+	if (!case_insensitive)
+		return str.compare(start, suffix.size(), suffix) == 0;
+
+	for (size_t i = 0; i < suffix.size(); ++i)
+		if (tolower(str[start + i]) != tolower(suffix[i]))
+			return false;
+	return true;
+}
+
+
+/**
+ * Check whether \p str ends with the string suffix. If \p case_insensitive
+ * is true then the check is case insensitve (default is false; i.e. case is
+ * significant).
+ *
+ * @param str
+ * @param suffix
+ * @param case_insensitive
+ * @return true if the str begins with suffix
+ */
+template <typename T>
+inline bool str_ends_with(const std::basic_string<T> &str,
+		const T *suffix,
+		bool case_insensitive = false)
+{
+	return str_ends_with(str, std::basic_string<T>(suffix),
+			case_insensitive);
+}
+
+
 /**
  * Splits a string into its component parts separated by the character
  * \p delimiter.
@@ -234,8 +286,8 @@ inline std::string lowercase(const std::string &str)
 
 	s2.reserve(str.size());
 
-	for (size_t i = 0; i < str.size(); i++)
-		s2 += tolower(str[i]);
+	for (char i : str)
+		s2 += tolower(i);
 
 	return s2;
 }
@@ -350,23 +402,57 @@ inline T from_string(const std::string &str)
 /// Returns a 64-bit signed value represented by the string \p str (decimal).
 inline s64 stoi64(const std::string &str) { return from_string<s64>(str); }
 
-// TODO: Replace with C++11 std::to_string.
+#if __cplusplus < 201103L
+namespace std {
 
 /// Returns a string representing the value \p val.
 template <typename T>
-inline std::string to_string(T val)
+inline string to_string(T val)
 {
-	std::ostringstream oss;
+	ostringstream oss;
 	oss << val;
 	return oss.str();
 }
+#define DEFINE_STD_TOSTRING_FLOATINGPOINT(T)		\
+	template <>					\
+	inline string to_string<T>(T val)		\
+	{						\
+		ostringstream oss;			\
+		oss << std::fixed			\
+			<< std::setprecision(6)		\
+			<< val;				\
+		return oss.str();			\
+	}
+DEFINE_STD_TOSTRING_FLOATINGPOINT(float)
+DEFINE_STD_TOSTRING_FLOATINGPOINT(double)
+DEFINE_STD_TOSTRING_FLOATINGPOINT(long double)
+
+#undef DEFINE_STD_TOSTRING_FLOATINGPOINT
+
+/// Returns a wide string representing the value \p val
+template <typename T>
+inline wstring to_wstring(T val)
+{
+      return utf8_to_wide(to_string(val));
+}
+}
+#endif
 
 /// Returns a string representing the decimal value of the 32-bit value \p i.
-inline std::string itos(s32 i) { return to_string(i); }
+inline std::string itos(s32 i) { return std::to_string(i); }
 /// Returns a string representing the decimal value of the 64-bit value \p i.
-inline std::string i64tos(s64 i) { return to_string(i); }
+inline std::string i64tos(s64 i) { return std::to_string(i); }
+
+// std::to_string uses the '%.6f' conversion, which is inconsistent with
+// std::ostream::operator<<() and impractical too.  ftos() uses the
+// more generic and std::ostream::operator<<()-compatible '%G' format.
 /// Returns a string representing the decimal value of the float value \p f.
-inline std::string ftos(float f) { return to_string(f); }
+inline std::string ftos(float f)
+{
+	std::ostringstream oss;
+	oss << f;
+	return oss.str();
+}
 
 
 /**
@@ -384,6 +470,18 @@ inline void str_replace(std::string &str, const std::string &pattern,
 		str.replace(start, pattern.size(), replacement);
 		start = str.find(pattern, start + replacement.size());
 	}
+}
+
+/**
+ * Escapes characters [ ] \ , ; that can not be used in formspecs
+ */
+inline void str_formspec_escape(std::string &str)
+{
+	str_replace(str, "\\", "\\\\");
+	str_replace(str, "]", "\\]");
+	str_replace(str, "[", "\\[");
+	str_replace(str, ";", "\\;");
+	str_replace(str, ",", "\\,");
 }
 
 /**
@@ -551,6 +649,12 @@ std::vector<std::basic_string<T> > split(const std::basic_string<T> &s, T delim)
 	return tokens;
 }
 
+std::wstring translate_string(const std::wstring &s);
+
+inline std::wstring unescape_translate(const std::wstring &s) {
+	return unescape_enriched(translate_string(s));
+}
+
 /**
  * Checks that all characters in \p to_check are a decimal digits.
  *
@@ -560,8 +664,8 @@ std::vector<std::basic_string<T> > split(const std::basic_string<T> &s, T delim)
  */
 inline bool is_number(const std::string &to_check)
 {
-	for (size_t i = 0; i < to_check.size(); i++)
-		if (!std::isdigit(to_check[i]))
+	for (char i : to_check)
+		if (!std::isdigit(i))
 			return false;
 
 	return !to_check.empty();
@@ -578,4 +682,44 @@ inline const char *bool_to_cstr(bool val)
 	return val ? "true" : "false";
 }
 
-#endif
+inline const std::string duration_to_string(int sec)
+{
+	int min = sec / 60;
+	sec %= 60;
+	int hour = min / 60;
+	min %= 60;
+
+	std::stringstream ss;
+	if (hour > 0) {
+		ss << hour << "h ";
+	}
+
+	if (min > 0) {
+		ss << min << "m ";
+	}
+
+	if (sec > 0) {
+		ss << sec << "s ";
+	}
+
+	return ss.str();
+}
+
+/**
+ * Joins a vector of strings by the string \p delimiter.
+ *
+ * @return A std::string
+ */
+inline std::string str_join(const std::vector<std::string> &list,
+		const std::string &delimiter)
+{
+	std::ostringstream oss;
+	bool first = true;
+	for (const auto &part : list) {
+		if (!first)
+			oss << delimiter;
+		oss << part;
+		first = false;
+	}
+	return oss.str();
+}

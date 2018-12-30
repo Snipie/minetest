@@ -17,10 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef BASICMACROS_HEADER
-#define BASICMACROS_HEADER
-
-#include <algorithm>
+#pragma once
 
 #define ARRLEN(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -28,15 +25,16 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #define MYMAX(a, b) ((a) > (b) ? (a) : (b))
 
+// Requires <algorithm>
 #define CONTAINS(c, v) (std::find((c).begin(), (c).end(), (v)) != (c).end())
 
 // To disable copy constructors and assignment operations for some class
 // 'Foobar', add the macro DISABLE_CLASS_COPY(Foobar) as a private member.
 // Note this also disables copying for any classes derived from 'Foobar' as well
 // as classes having a 'Foobar' member.
-#define DISABLE_CLASS_COPY(C) \
-	C(const C &);             \
-	C &operator=(const C &)
+#define DISABLE_CLASS_COPY(C)        \
+	C(const C &) = delete;           \
+	C &operator=(const C &) = delete;
 
 #ifndef _MSC_VER
 	#define UNUSED_ATTRIBUTE __attribute__ ((unused))
@@ -50,4 +48,11 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #define STATIC_ASSERT(expr, msg) \
 	UNUSED_ATTRIBUTE typedef char msg[!!(expr) * 2 - 1]
 
-#endif
+// Macros to facilitate writing position vectors to a stream
+// Usage:
+//	v3s16 pos(1,2,3);
+//	mystream << "message " << PP(pos) << std::endl;
+
+#define PP(x) "("<<(x).X<<","<<(x).Y<<","<<(x).Z<<")"
+
+#define PP2(x) "("<<(x).X<<","<<(x).Y<<")"

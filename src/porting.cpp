@@ -25,13 +25,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "porting.h"
 
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__)  || defined(__NetBSD__) || defined(__DragonFly__)
 	#include <sys/types.h>
 	#include <sys/sysctl.h>
 #elif defined(_WIN32)
 	#include <windows.h>
 	#include <wincrypt.h>
 	#include <algorithm>
+	#include <shlwapi.h>
 #endif
 #if !defined(_WIN32)
 	#include <unistd.h>
@@ -41,14 +42,6 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 	#define _PSTAT64
 	#include <sys/pstat.h>
 #endif
-#if !defined(_WIN32) && !defined(__APPLE__) && \
-	!defined(__ANDROID__) && !defined(SERVER)
-	#define XORG_USED
-#endif
-#ifdef XORG_USED
-	#include <X11/Xlib.h>
-	#include <X11/Xutil.h>
-#endif
 
 #include "config.h"
 #include "debug.h"
@@ -57,6 +50,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/string.h"
 #include "settings.h"
 #include <list>
+#include <cstdarg>
+#include <cstdio>
 
 namespace porting
 {
@@ -67,7 +62,7 @@ namespace porting
 
 bool g_killed = false;
 
-bool * signal_handler_killstatus(void)
+bool *signal_handler_killstatus()
 {
 	return &g_killed;
 }
@@ -175,26 +170,32 @@ bool detectMSVCBuildDir(const std::string &path)
 		"bin\\Build",
 		NULL
 	};
-	return (removeStringEnd(path, ends) != "");
+	return (!removeStringEnd(path, ends).empty());
 }
 
 std::string get_sysinfo()
 {
 #ifdef _WIN32
-	OSVERSIONINFO osvi;
-	std::ostringstream oss;
-	std::string tmp;
-	ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-	GetVersionEx(&osvi);
-	tmp = osvi.szCSDVersion;
-	std::replace(tmp.begin(), tmp.end(), ' ', '_');
 
-	oss << "Windows/" << osvi.dwMajorVersion << "."
-		<< osvi.dwMinorVersion;
-	if (osvi.szCSDVersion[0])
-		oss << "-" << tmp;
-	oss << " ";
+	std::ostringstream oss;
+	LPSTR filePath = new char[MAX_PATH];
+	UINT blockSize;
+	VS_FIXEDFILEINFO *fixedFileInfo;
+
+	GetSystemDirectoryA(filePath, MAX_PATH);
+	PathAppendA(filePath, "kernel32.dll");
+
+	DWORD dwVersionSize = GetFileVersionInfoSizeA(filePath, NULL);
+	LPBYTE lpVersionInfo = new BYTE[dwVersionSize];
+
+	GetFileVersionInfoA(filePath, 0, dwVersionSize, lpVersionInfo);
+	VerQueryValueA(lpVersionInfo, "\\", (LPVOID *)&fixedFileInfo, &blockSize);
+
+	oss << "Windows/"
+		<< HIWORD(fixedFileInfo->dwProductVersionMS) << '.' // Major
+		<< LOWORD(fixedFileInfo->dwProductVersionMS) << '.' // Minor
+		<< HIWORD(fixedFileInfo->dwProductVersionLS) << ' '; // Build
+
 	#ifdef _WIN64
 	oss << "x86_64";
 	#else
@@ -204,6 +205,9 @@ std::string get_sysinfo()
 	else
 		oss << "x86";
 	#endif
+
+	delete[] lpVersionInfo;
+	delete[] filePath;
 
 	return oss.str();
 #else
@@ -349,6 +353,21 @@ bool getCurrentExecPath(char *buf, size_t len)
 #endif
 
 
+//// Non-Windows
+#if !defined(_WIN32)
+
+const char *getHomeOrFail()
+{
+	const char *home = getenv("HOME");
+	// In rare cases the HOME environment variable may be unset
+	FATAL_ERROR_IF(!home,
+		"Required environment variable HOME is not set");
+	return home;
+}
+
+#endif
+
+
 //// Windows
 #if defined(_WIN32)
 
@@ -361,20 +380,27 @@ bool setSystemPaths()
 		"Failed to get current executable path");
 	pathRemoveFile(buf, '\\');
 
-	// Use ".\bin\.."
-	path_share = std::string(buf) + "\\..";
+	std::string exepath(buf);
 
-	// Use "C:\Documents and Settings\user\Application Data\<PROJECT_NAME>"
+	// Use ".\bin\.."
+	path_share = exepath + "\\..";
+	if (detectMSVCBuildDir(exepath)) {
+		// The msvc build dir schould normaly not be present if properly installed,
+		// but its usefull for debugging.
+		path_share += DIR_DELIM "..";
+	}
+
+	// Use "C:\Users\<user>\AppData\Roaming\<PROJECT_NAME_C>"
 	DWORD len = GetEnvironmentVariable("APPDATA", buf, sizeof(buf));
 	FATAL_ERROR_IF(len == 0 || len > sizeof(buf), "Failed to get APPDATA");
 
-	path_user = std::string(buf) + DIR_DELIM + PROJECT_NAME;
+	path_user = std::string(buf) + DIR_DELIM + PROJECT_NAME_C;
 	return true;
 }
 
 
 //// Linux
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 
 bool setSystemPaths()
 {
@@ -396,7 +422,7 @@ bool setSystemPaths()
 	// It is identified by containing the subdirectory "builtin".
 	std::list<std::string> trylist;
 	std::string static_sharedir = STATIC_SHAREDIR;
-	if (static_sharedir != "" && static_sharedir != ".")
+	if (!static_sharedir.empty() && static_sharedir != ".")
 		trylist.push_back(static_sharedir);
 
 	trylist.push_back(bindir + DIR_DELIM ".." DIR_DELIM "share"
@@ -408,7 +434,7 @@ bool setSystemPaths()
 #endif
 
 	for (std::list<std::string>::const_iterator
-			i = trylist.begin(); i != trylist.end(); i++) {
+			i = trylist.begin(); i != trylist.end(); ++i) {
 		const std::string &trypath = *i;
 		if (!fs::PathExists(trypath) ||
 			!fs::PathExists(trypath + DIR_DELIM + "builtin")) {
@@ -428,7 +454,7 @@ bool setSystemPaths()
 	}
 
 #ifndef __ANDROID__
-	path_user = std::string(getenv("HOME")) + DIR_DELIM "."
+	path_user = std::string(getHomeOrFail()) + DIR_DELIM "."
 		+ PROJECT_NAME;
 #endif
 
@@ -452,7 +478,7 @@ bool setSystemPaths()
 	}
 	CFRelease(resources_url);
 
-	path_user = std::string(getenv("HOME"))
+	path_user = std::string(getHomeOrFail())
 		+ "/Library/Application Support/"
 		+ PROJECT_NAME;
 	return true;
@@ -464,7 +490,7 @@ bool setSystemPaths()
 bool setSystemPaths()
 {
 	path_share = STATIC_SHAREDIR;
-	path_user  = std::string(getenv("HOME")) + DIR_DELIM "."
+	path_user  = std::string(getHomeOrFail()) + DIR_DELIM "."
 		+ lowercase(PROJECT_NAME);
 	return true;
 }
@@ -542,6 +568,10 @@ void initializePaths()
 	if (!setSystemPaths())
 		errorstream << "Failed to get one or more system-wide path" << std::endl;
 
+
+#  ifdef _WIN32
+	path_cache = path_user + DIR_DELIM + "cache";
+#  else
 	// Initialize path_cache
 	// First try $XDG_CACHE_HOME/PROJECT_NAME
 	const char *cache_dir = getenv("XDG_CACHE_HOME");
@@ -558,13 +588,14 @@ void initializePaths()
 	}
 	// Migrate cache folder to new location if possible
 	migrateCachePath();
-#endif
+#  endif // _WIN32
+#endif // RUN_IN_PLACE
 
 	infostream << "Detected share path: " << path_share << std::endl;
 	infostream << "Detected user path: " << path_user << std::endl;
 	infostream << "Detected cache path: " << path_cache << std::endl;
 
-#ifdef USE_GETTEXT
+#if USE_GETTEXT
 	bool found_localedir = false;
 #  ifdef STATIC_LOCALEDIR
 	if (STATIC_LOCALEDIR[0] && fs::PathExists(STATIC_LOCALEDIR)) {
@@ -591,252 +622,6 @@ void initializePaths()
 	}
 #endif  // USE_GETTEXT
 }
-
-
-
-void setXorgClassHint(const video::SExposedVideoData &video_data,
-	const std::string &name)
-{
-#ifdef XORG_USED
-	if (video_data.OpenGLLinux.X11Display == NULL)
-		return;
-
-	XClassHint *classhint = XAllocClassHint();
-	classhint->res_name  = (char *)name.c_str();
-	classhint->res_class = (char *)name.c_str();
-
-	XSetClassHint((Display *)video_data.OpenGLLinux.X11Display,
-		video_data.OpenGLLinux.X11Window, classhint);
-	XFree(classhint);
-#endif
-}
-
-bool setXorgWindowIcon(IrrlichtDevice *device,
-	const std::string &icon_file)
-{
-#ifdef XORG_USED
-
-	video::IVideoDriver *v_driver = device->getVideoDriver();
-
-	video::IImageLoader *image_loader = NULL;
-	for (u32 i = v_driver->getImageLoaderCount() - 1; i >= 0; i--) {
-		if (v_driver->getImageLoader(i)->isALoadableFileExtension(icon_file.c_str())) {
-			image_loader = v_driver->getImageLoader(i);
-			break;
-		}
-	}
-
-	if (!image_loader) {
-		warningstream << "Could not find image loader for file '"
-			<< icon_file << "'" << std::endl;
-		return false;
-	}
-
-	io::IReadFile *icon_f = device->getFileSystem()->createAndOpenFile(icon_file.c_str());
-
-	if (!icon_f) {
-		warningstream << "Could not load icon file '"
-			<< icon_file << "'" << std::endl;
-		return false;
-	}
-
-	video::IImage *img = image_loader->loadImage(icon_f);
-
-	if (!img) {
-		warningstream << "Could not load icon file '"
-			<< icon_file << "'" << std::endl;
-		icon_f->drop();
-		return false;
-	}
-
-	u32 height = img->getDimension().Height;
-	u32 width = img->getDimension().Width;
-
-	size_t icon_buffer_len = 2 + height * width;
-	long *icon_buffer = new long[icon_buffer_len];
-
-	icon_buffer[0] = width;
-	icon_buffer[1] = height;
-
-	for (u32 x = 0; x < width; x++) {
-		for (u32 y = 0; y < height; y++) {
-			video::SColor col = img->getPixel(x, y);
-			long pixel_val = 0;
-			pixel_val |= (u8)col.getAlpha() << 24;
-			pixel_val |= (u8)col.getRed() << 16;
-			pixel_val |= (u8)col.getGreen() << 8;
-			pixel_val |= (u8)col.getBlue();
-			icon_buffer[2 + x + y * width] = pixel_val;
-		}
-	}
-
-	img->drop();
-	icon_f->drop();
-
-	const video::SExposedVideoData &video_data = v_driver->getExposedVideoData();
-
-	Display *x11_dpl = (Display *)video_data.OpenGLLinux.X11Display;
-
-	if (x11_dpl == NULL) {
-		warningstream << "Could not find x11 display for setting its icon."
-			<< std::endl;
-		delete [] icon_buffer;
-		return false;
-	}
-
-	Window x11_win = (Window)video_data.OpenGLLinux.X11Window;
-
-	Atom net_wm_icon = XInternAtom(x11_dpl, "_NET_WM_ICON", False);
-	Atom cardinal = XInternAtom(x11_dpl, "CARDINAL", False);
-	XChangeProperty(x11_dpl, x11_win,
-		net_wm_icon, cardinal, 32,
-		PropModeReplace, (const unsigned char *)icon_buffer,
-		icon_buffer_len);
-
-	delete [] icon_buffer;
-
-#endif
-	return true;
-}
-
-////
-//// Video/Display Information (Client-only)
-////
-
-#ifndef SERVER
-
-static irr::IrrlichtDevice *device;
-
-void initIrrlicht(irr::IrrlichtDevice *device_)
-{
-	device = device_;
-}
-
-v2u32 getWindowSize()
-{
-	return device->getVideoDriver()->getScreenSize();
-}
-
-
-std::vector<core::vector3d<u32> > getSupportedVideoModes()
-{
-	IrrlichtDevice *nulldevice = createDevice(video::EDT_NULL);
-	sanity_check(nulldevice != NULL);
-
-	std::vector<core::vector3d<u32> > mlist;
-	video::IVideoModeList *modelist = nulldevice->getVideoModeList();
-
-	u32 num_modes = modelist->getVideoModeCount();
-	for (u32 i = 0; i != num_modes; i++) {
-		core::dimension2d<u32> mode_res = modelist->getVideoModeResolution(i);
-		s32 mode_depth = modelist->getVideoModeDepth(i);
-		mlist.push_back(core::vector3d<u32>(mode_res.Width, mode_res.Height, mode_depth));
-	}
-
-	nulldevice->drop();
-
-	return mlist;
-}
-
-std::vector<irr::video::E_DRIVER_TYPE> getSupportedVideoDrivers()
-{
-	std::vector<irr::video::E_DRIVER_TYPE> drivers;
-
-	for (int i = 0; i != irr::video::EDT_COUNT; i++) {
-		if (irr::IrrlichtDevice::isDriverSupported((irr::video::E_DRIVER_TYPE)i))
-			drivers.push_back((irr::video::E_DRIVER_TYPE)i);
-	}
-
-	return drivers;
-}
-
-const char *getVideoDriverName(irr::video::E_DRIVER_TYPE type)
-{
-	static const char *driver_ids[] = {
-		"null",
-		"software",
-		"burningsvideo",
-		"direct3d8",
-		"direct3d9",
-		"opengl",
-		"ogles1",
-		"ogles2",
-	};
-
-	return driver_ids[type];
-}
-
-
-const char *getVideoDriverFriendlyName(irr::video::E_DRIVER_TYPE type)
-{
-	static const char *driver_names[] = {
-		"NULL Driver",
-		"Software Renderer",
-		"Burning's Video",
-		"Direct3D 8",
-		"Direct3D 9",
-		"OpenGL",
-		"OpenGL ES1",
-		"OpenGL ES2",
-	};
-
-	return driver_names[type];
-}
-
-#	ifndef __ANDROID__
-#		ifdef XORG_USED
-
-static float calcDisplayDensity()
-{
-	const char *current_display = getenv("DISPLAY");
-
-	if (current_display != NULL) {
-		Display *x11display = XOpenDisplay(current_display);
-
-		if (x11display != NULL) {
-			/* try x direct */
-			float dpi_height = floor(DisplayHeight(x11display, 0) /
-							(DisplayHeightMM(x11display, 0) * 0.039370) + 0.5);
-			float dpi_width = floor(DisplayWidth(x11display, 0) /
-							(DisplayWidthMM(x11display, 0) * 0.039370) + 0.5);
-
-			XCloseDisplay(x11display);
-
-			return std::max(dpi_height,dpi_width) / 96.0;
-		}
-	}
-
-	/* return manually specified dpi */
-	return g_settings->getFloat("screen_dpi")/96.0;
-}
-
-
-float getDisplayDensity()
-{
-	static float cached_display_density = calcDisplayDensity();
-	return cached_display_density;
-}
-
-
-#		else // XORG_USED
-float getDisplayDensity()
-{
-	return g_settings->getFloat("screen_dpi")/96.0;
-}
-#		endif // XORG_USED
-
-v2u32 getDisplaySize()
-{
-	IrrlichtDevice *nulldevice = createDevice(video::EDT_NULL);
-
-	core::dimension2d<u32> deskres = nulldevice->getVideoModeList()->getDesktopResolution();
-	nulldevice -> drop();
-
-	return deskres;
-}
-#	endif // __ANDROID__
-#endif // SERVER
-
 
 ////
 //// OS-specific Secure Random
@@ -874,6 +659,55 @@ bool secure_rand_fill_buf(void *buf, size_t len)
 	fclose(fp);
 	return success;
 }
+
+#endif
+
+void attachOrCreateConsole()
+{
+#ifdef _WIN32
+	static bool consoleAllocated = false;
+	const bool redirected = (_fileno(stdout) == -2 || _fileno(stdout) == -1); // If output is redirected to e.g a file
+	if (!consoleAllocated && redirected && (AttachConsole(ATTACH_PARENT_PROCESS) || AllocConsole())) {
+		freopen("CONOUT$", "w", stdout);
+		freopen("CONOUT$", "w", stderr);
+		consoleAllocated = true;
+	}
+#endif
+}
+
+int mt_snprintf(char *buf, const size_t buf_size, const char *fmt, ...)
+{
+	// https://msdn.microsoft.com/en-us/library/bt7tawza.aspx
+	//  Many of the MSVC / Windows printf-style functions do not support positional
+	//  arguments (eg. "%1$s"). We just forward the call to vsnprintf for sane
+	//  platforms, but defer to _vsprintf_p on MSVC / Windows.
+	// https://github.com/FFmpeg/FFmpeg/blob/5ae9fa13f5ac640bec113120d540f70971aa635d/compat/msvcrt/snprintf.c#L46
+	//  _vsprintf_p has to be shimmed with _vscprintf_p on -1 (for an example see
+	//  above FFmpeg link).
+	va_list args;
+	va_start(args, fmt);
+#ifndef _MSC_VER
+	int c = vsnprintf(buf, buf_size, fmt, args);
+#else  // _MSC_VER
+	int c = _vsprintf_p(buf, buf_size, fmt, args);
+	if (c == -1)
+		c = _vscprintf_p(fmt, args);
+#endif // _MSC_VER
+	va_end(args);
+	return c;
+}
+
+// Load performance counter frequency only once at startup
+#ifdef _WIN32
+
+inline double get_perf_freq()
+{
+	LARGE_INTEGER freq;
+	QueryPerformanceFrequency(&freq);
+	return freq.QuadPart;
+}
+
+double perf_freq = get_perf_freq();
 
 #endif
 

@@ -31,6 +31,14 @@ function vector.normalize(v)
 	end
 end
 
+function vector.floor(v)
+	return {
+		x = math.floor(v.x),
+		y = math.floor(v.y),
+		z = math.floor(v.z)
+	}
+end
+
 function vector.round(v)
 	return {
 		x = math.floor(v.x + 0.5),
@@ -55,33 +63,12 @@ function vector.distance(a, b)
 end
 
 function vector.direction(pos1, pos2)
-	local x_raw = pos2.x - pos1.x
-	local y_raw = pos2.y - pos1.y
-	local z_raw = pos2.z - pos1.z
-	local x_abs = math.abs(x_raw)
-	local y_abs = math.abs(y_raw)
-	local z_abs = math.abs(z_raw)
-	if x_abs >= y_abs and
-	   x_abs >= z_abs then
-		y_raw = y_raw * (1 / x_abs)
-		z_raw = z_raw * (1 / x_abs)
-		x_raw = x_raw / x_abs
-	end
-	if y_abs >= x_abs and
-	   y_abs >= z_abs then
-		x_raw = x_raw * (1 / y_abs)
-		z_raw = z_raw * (1 / y_abs)
-		y_raw = y_raw / y_abs
-	end
-	if z_abs >= y_abs and
-	   z_abs >= x_abs then
-		x_raw = x_raw * (1 / z_abs)
-		y_raw = y_raw * (1 / z_abs)
-		z_raw = z_raw / z_abs
-	end
-	return {x=x_raw, y=y_raw, z=z_raw}
+	return vector.normalize({
+		x = pos2.x - pos1.x,
+		y = pos2.y - pos1.y,
+		z = pos2.z - pos1.z
+	})
 end
-
 
 function vector.add(a, b)
 	if type(b) == "table" then
@@ -131,3 +118,7 @@ function vector.divide(a, b)
 	end
 end
 
+function vector.sort(a, b)
+	return {x = math.min(a.x, b.x), y = math.min(a.y, b.y), z = math.min(a.z, b.z)},
+		{x = math.max(a.x, b.x), y = math.max(a.y, b.y), z = math.max(a.z, b.z)}
+end

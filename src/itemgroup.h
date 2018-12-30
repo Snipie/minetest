@@ -17,22 +17,17 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef ITEMGROUP_HEADER
-#define ITEMGROUP_HEADER
+#pragma once
 
 #include <string>
-#include <map>
+#include <unordered_map>
 
-typedef std::map<std::string, int> ItemGroupList;
+typedef std::unordered_map<std::string, int> ItemGroupList;
 
-static inline int itemgroup_get(const ItemGroupList &groups,
-		const std::string &name)
+static inline int itemgroup_get(const ItemGroupList &groups, const std::string &name)
 {
-	std::map<std::string, int>::const_iterator i = groups.find(name);
-	if(i == groups.end())
+	ItemGroupList::const_iterator i = groups.find(name);
+	if (i == groups.end())
 		return 0;
 	return i->second;
 }
-
-#endif
-

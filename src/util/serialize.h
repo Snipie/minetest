@@ -17,12 +17,12 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef UTIL_SERIALIZE_HEADER
-#define UTIL_SERIALIZE_HEADER
+#pragma once
 
-#include "../irrlichttypes_bloated.h"
-#include "../exceptions.h" // for SerializationError
-#include "../debug.h" // for assert
+#include "irrlichttypes_bloated.h"
+#include "exceptions.h" // for SerializationError
+#include "debug.h" // for assert
+#include "ieee_float.h"
 
 #include "config.h"
 #if HAVE_ENDIAN_H
@@ -38,7 +38,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 		#include <endian.h>
 	#endif
 #endif
-#include <string.h> // for memcpy
+#include <cstring> // for memcpy
 #include <iostream>
 #include <string>
 #include <vector>
@@ -60,6 +60,8 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 // 64 MB ought to be enough for anybody - Billy G.
 #define LONG_STRING_MAX_LEN (64 * 1024 * 1024)
 
+
+extern FloatType g_serialize_f32_type;
 
 #if HAVE_ENDIAN_H
 // use machine native byte swapping routines
@@ -189,6 +191,25 @@ inline f32 readF1000(const u8 *data)
 	return (f32)readS32(data) / FIXEDPOINT_FACTOR;
 }
 
+inline f32 readF32(const u8 *data)
+{
+	u32 u = readU32(data);
+
+	switch (g_serialize_f32_type) {
+	case FLOATTYPE_SYSTEM: {
+			f32 f;
+			memcpy(&f, &u, 4);
+			return f;
+		}
+	case FLOATTYPE_SLOW:
+		return u32Tof32Slow(u);
+	case FLOATTYPE_UNKNOWN: // First initialization
+		g_serialize_f32_type = getFloatSerializationType();
+		return readF32(data);
+	}
+	throw SerializationError("readF32: Unreachable code");
+}
+
 inline video::SColor readARGB8(const u8 *data)
 {
 	video::SColor p(readU32(data));
@@ -246,6 +267,15 @@ inline v3f readV3F1000(const u8 *data)
 	return p;
 }
 
+inline v3f readV3F32(const u8 *data)
+{
+	v3f p;
+	p.X = (float)readF32(&data[0]);
+	p.Y = (float)readF32(&data[4]);
+	p.Z = (float)readF32(&data[8]);
+	return p;
+}
+
 /////////////// write routines ////////////////
 
 inline void writeU8(u8 *data, u8 i)
@@ -260,7 +290,7 @@ inline void writeS8(u8 *data, s8 i)
 
 inline void writeS16(u8 *data, s16 i)
 {
-	writeU16(data, (u16)i);
+	writeU16(data, (u16)i); 
 }
 
 inline void writeS32(u8 *data, s32 i)
@@ -277,6 +307,23 @@ inline void writeF1000(u8 *data, f32 i)
 {
 	assert(i >= F1000_MIN && i <= F1000_MAX);
 	writeS32(data, i * FIXEDPOINT_FACTOR);
+}
+
+inline void writeF32(u8 *data, f32 i)
+{
+	switch (g_serialize_f32_type) {
+	case FLOATTYPE_SYSTEM: {
+			u32 u;
+			memcpy(&u, &i, 4);
+			return writeU32(data, u);
+		}
+	case FLOATTYPE_SLOW:
+		return writeU32(data, f32Tou32Slow(i));
+	case FLOATTYPE_UNKNOWN: // First initialization
+		g_serialize_f32_type = getFloatSerializationType();
+		return writeF32(data, i);
+	}
+	throw SerializationError("writeF32: Unreachable code");
 }
 
 inline void writeARGB8(u8 *data, video::SColor p)
@@ -323,6 +370,13 @@ inline void writeV3F1000(u8 *data, v3f p)
 	writeF1000(&data[8], p.Z);
 }
 
+inline void writeV3F32(u8 *data, v3f p)
+{
+	writeF32(&data[0], p.X);
+	writeF32(&data[4], p.Y);
+	writeF32(&data[8], p.Z);
+}
+
 ////
 //// Iostream wrapper for data read/write
 ////
@@ -352,12 +406,14 @@ MAKE_STREAM_READ_FXN(s16,   S16,      2);
 MAKE_STREAM_READ_FXN(s32,   S32,      4);
 MAKE_STREAM_READ_FXN(s64,   S64,      8);
 MAKE_STREAM_READ_FXN(f32,   F1000,    4);
+MAKE_STREAM_READ_FXN(f32,   F32,      4);
 MAKE_STREAM_READ_FXN(v2s16, V2S16,    4);
 MAKE_STREAM_READ_FXN(v3s16, V3S16,    6);
 MAKE_STREAM_READ_FXN(v2s32, V2S32,    8);
 MAKE_STREAM_READ_FXN(v3s32, V3S32,   12);
 MAKE_STREAM_READ_FXN(v2f,   V2F1000,  8);
 MAKE_STREAM_READ_FXN(v3f,   V3F1000, 12);
+MAKE_STREAM_READ_FXN(v3f,   V3F32,   12);
 MAKE_STREAM_READ_FXN(video::SColor, ARGB8, 4);
 
 MAKE_STREAM_WRITE_FXN(u8,    U8,       1);
@@ -369,12 +425,14 @@ MAKE_STREAM_WRITE_FXN(s16,   S16,      2);
 MAKE_STREAM_WRITE_FXN(s32,   S32,      4);
 MAKE_STREAM_WRITE_FXN(s64,   S64,      8);
 MAKE_STREAM_WRITE_FXN(f32,   F1000,    4);
+MAKE_STREAM_WRITE_FXN(f32,   F32,      4);
 MAKE_STREAM_WRITE_FXN(v2s16, V2S16,    4);
 MAKE_STREAM_WRITE_FXN(v3s16, V3S16,    6);
 MAKE_STREAM_WRITE_FXN(v2s32, V2S32,    8);
 MAKE_STREAM_WRITE_FXN(v3s32, V3S32,   12);
 MAKE_STREAM_WRITE_FXN(v2f,   V2F1000,  8);
 MAKE_STREAM_WRITE_FXN(v3f,   V3F1000, 12);
+MAKE_STREAM_WRITE_FXN(v3f,   V3F32,   12);
 MAKE_STREAM_WRITE_FXN(video::SColor, ARGB8, 4);
 
 ////
@@ -405,6 +463,13 @@ std::string serializeJsonString(const std::string &plain);
 // Reads a string encoded in JSON format
 std::string deSerializeJsonString(std::istream &is);
 
+// If the string contains spaces, quotes or control characters, encodes as JSON.
+// Else returns the string unmodified.
+std::string serializeJsonStringIfNeeded(const std::string &s);
+
+// Parses a string serialized by serializeJsonStringIfNeeded.
+std::string deSerializeJsonStringIfNeeded(std::istream &is);
+
 // Creates a string consisting of the hexadecimal representation of `data`
 std::string serializeHexString(const std::string &data, bool insert_spaces=false);
 
@@ -422,8 +487,6 @@ bool deSerializeStringToStruct(std::string valstr,
 //// BufReader
 ////
 
-extern SerializationError eof_ser_err;
-
 #define MAKE_BUFREADER_GETNOEX_FXN(T, N, S) \
 	inline bool get ## N ## NoEx(T *val)    \
 	{                                       \
@@ -439,7 +502,7 @@ extern SerializationError eof_ser_err;
 	{                                \
 		T val;                       \
 		if (!get ## N ## NoEx(&val)) \
-			throw eof_ser_err;       \
+			throw SerializationError("Attempted read past end of data"); \
 		return val;                  \
 	}
 
@@ -447,8 +510,7 @@ class BufReader {
 public:
 	BufReader(const u8 *data_, size_t size_) :
 		data(data_),
-		size(size_),
-		pos(0)
+		size(size_)
 	{
 	}
 
@@ -497,7 +559,7 @@ public:
 	inline void getRawData(void *val, size_t len)
 	{
 		if (!getRawDataNoEx(val, len))
-			throw eof_ser_err;
+			throw SerializationError("Attempted read past end of data");
 	}
 
 	inline size_t remaining()
@@ -508,7 +570,7 @@ public:
 
 	const u8 *data;
 	size_t size;
-	size_t pos;
+	size_t pos = 0;
 };
 
 #undef MAKE_BUFREADER_GET_FXN
@@ -651,5 +713,3 @@ inline void putRawData(std::vector<u8> *dest, const void *src, size_t len)
 {
 	dest->insert(dest->end(), (u8 *)src, (u8 *)src + len);
 }
-
-#endif

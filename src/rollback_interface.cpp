@@ -22,6 +22,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "util/serialize.h"
 #include "util/string.h"
 #include "util/numeric.h"
+#include "util/basic_macros.h"
 #include "map.h"
 #include "gamedef.h"
 #include "nodedef.h"
@@ -32,12 +33,10 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "inventory.h"
 #include "mapblock.h"
 
-#define PP(x) "("<<(x).X<<","<<(x).Y<<","<<(x).Z<<")"
-
 
 RollbackNode::RollbackNode(Map *map, v3s16 p, IGameDef *gamedef)
 {
-	INodeDefManager *ndef = gamedef->ndef();
+	const NodeDefManager *ndef = gamedef->ndef();
 	MapNode n = map->getNodeNoEx(p);
 	name = ndef->get(n).name;
 	param1 = n.param1;
@@ -45,7 +44,7 @@ RollbackNode::RollbackNode(Map *map, v3s16 p, IGameDef *gamedef)
 	NodeMetadata *metap = map->getNodeMetadata(p);
 	if (metap) {
 		std::ostringstream os(std::ios::binary);
-		metap->serialize(os);
+		metap->serialize(os, 1); // FIXME: version bump??
 		meta = os.str();
 	}
 }
@@ -91,7 +90,7 @@ bool RollbackAction::isImportant(IGameDef *gamedef) const
 	// If metadata differs, action is always important
 	if(n_old.meta != n_new.meta)
 		return true;
-	INodeDefManager *ndef = gamedef->ndef();
+	const NodeDefManager *ndef = gamedef->ndef();
 	// Both are of the same name, so a single definition is needed
 	const ContentFeatures &def = ndef->get(n_old.name);
 	// If the type is flowing liquid, action is not important
@@ -129,7 +128,7 @@ bool RollbackAction::applyRevert(Map *map, InventoryManager *imgr, IGameDef *gam
 		case TYPE_NOTHING:
 			return true;
 		case TYPE_SET_NODE: {
-			INodeDefManager *ndef = gamedef->ndef();
+			const NodeDefManager *ndef = gamedef->ndef();
 			// Make sure position is loaded from disk
 			map->emergeBlock(getContainerPos(p, MAP_BLOCKSIZE), false);
 			// Check current node
@@ -166,20 +165,13 @@ bool RollbackAction::applyRevert(Map *map, InventoryManager *imgr, IGameDef *gam
 						}
 					}
 					std::istringstream is(n_old.meta, std::ios::binary);
-					meta->deSerialize(is);
+					meta->deSerialize(is, 1); // FIXME: version bump??
 				}
 				// Inform other things that the meta data has changed
-				v3s16 blockpos = getContainerPos(p, MAP_BLOCKSIZE);
 				MapEditEvent event;
 				event.type = MEET_BLOCK_NODE_METADATA_CHANGED;
-				event.p = blockpos;
+				event.p = p;
 				map->dispatchEvent(&event);
-				// Set the block to be saved
-				MapBlock *block = map->getBlockNoCreateNoEx(blockpos);
-				if (block) {
-					block->raiseModified(MOD_STATE_WRITE_NEEDED,
-						MOD_REASON_REPORT_META_CHANGE);
-				}
 			} catch (InvalidPositionException &e) {
 				infostream << "RollbackAction::applyRevert(): "
 					<< "InvalidPositionException: " << e.what()
@@ -191,7 +183,6 @@ bool RollbackAction::applyRevert(Map *map, InventoryManager *imgr, IGameDef *gam
 		case TYPE_MODIFY_INVENTORY_STACK: {
 			InventoryLocation loc;
 			loc.deSerialize(inventory_location);
-			std::string real_name = gamedef->idef()->getAlias(inventory_stack.name);
 			Inventory *inv = imgr->getInventory(loc);
 			if (!inv) {
 				infostream << "RollbackAction::applyRevert(): Could not get "
@@ -212,10 +203,12 @@ bool RollbackAction::applyRevert(Map *map, InventoryManager *imgr, IGameDef *gam
 					<< inventory_location << std::endl;
 				return false;
 			}
+			
 			// If item was added, take away item, otherwise add removed item
 			if (inventory_add) {
 				// Silently ignore different current item
-				if (list->getItem(inventory_index).name != real_name)
+				if (list->getItem(inventory_index).name !=
+						gamedef->idef()->getAlias(inventory_stack.name))
 					return false;
 				list->takeItem(inventory_index, inventory_stack.count);
 			} else {

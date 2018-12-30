@@ -21,6 +21,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "util/string.h"
 #include "util/serialize.h"
+#include <cmath>
 
 class TestSerialization : public TestBase {
 public:
@@ -43,6 +44,7 @@ public:
 	void testVecPut();
 	void testStringLengthLimits();
 	void testBufReader();
+	void testFloatFormat();
 
 	std::string teststring2;
 	std::wstring teststring2_w;
@@ -70,6 +72,7 @@ void TestSerialization::runTests(IGameDef *gamedef)
 	TEST(testVecPut);
 	TEST(testStringLengthLimits);
 	TEST(testBufReader);
+	TEST(testFloatFormat);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -295,7 +298,7 @@ void TestSerialization::testStreamRead()
 	UASSERT(readU8(is) == 0x11);
 	UASSERT(readU16(is) == 0x2233);
 	UASSERT(readU32(is) == 0x44556677);
-	UASSERT(readU64(is) == 0x8899AABBCCDDEEFF);
+	UASSERT(readU64(is) == 0x8899AABBCCDDEEFFLL);
 
 	UASSERT(readS8(is) == -128);
 	UASSERT(readS16(is) == 30000);
@@ -336,7 +339,7 @@ void TestSerialization::testStreamWrite()
 	writeU8(os, 0x11);
 	writeU16(os, 0x2233);
 	writeU32(os, 0x44556677);
-	writeU64(os, 0x8899AABBCCDDEEFF);
+	writeU64(os, 0x8899AABBCCDDEEFFLL);
 
 	writeS8(os, -128);
 	writeS16(os, 30000);
@@ -382,7 +385,7 @@ void TestSerialization::testVecPut()
 	putU8(&buf, 0x11);
 	putU16(&buf, 0x2233);
 	putU32(&buf, 0x44556677);
-	putU64(&buf, 0x8899AABBCCDDEEFF);
+	putU64(&buf, 0x8899AABBCCDDEEFFLL);
 
 	putS8(&buf, -128);
 	putS16(&buf, 30000);
@@ -464,7 +467,7 @@ void TestSerialization::testBufReader()
 	UASSERT(buf.getU8() == 0x11);
 	UASSERT(buf.getU16() == 0x2233);
 	UASSERT(buf.getU32() == 0x44556677);
-	UASSERT(buf.getU64() == 0x8899AABBCCDDEEFF);
+	UASSERT(buf.getU64() == 0x8899AABBCCDDEEFFLL);
 	UASSERT(buf.getS8() == -128);
 	UASSERT(buf.getS16() == 30000);
 	UASSERT(buf.getS32() == -6);
@@ -576,7 +579,7 @@ void TestSerialization::testBufReader()
 	UASSERT(u8_data == 0x11);
 	UASSERT(u16_data == 0x2233);
 	UASSERT(u32_data == 0x44556677);
-	UASSERT(u64_data == 0x8899AABBCCDDEEFF);
+	UASSERT(u64_data == 0x8899AABBCCDDEEFFLL);
 	UASSERT(s8_data == -128);
 	UASSERT(s16_data == 30000);
 	UASSERT(s32_data == -6);
@@ -631,6 +634,88 @@ void TestSerialization::testBufReader()
 	UASSERT(!buf.getRawDataNoEx(raw_data, sizeof(raw_data)));
 }
 
+void TestSerialization::testFloatFormat()
+{
+	FloatType type = getFloatSerializationType();
+	u32 i;
+	f32 fs, fm;
+
+	// Check precision of float calculations on this platform
+	const std::unordered_map<f32, u32> float_results = {
+		{  0.0f, 0x00000000UL },
+		{  1.0f, 0x3F800000UL },
+		{ -1.0f, 0xBF800000UL },
+		{  0.1f, 0x3DCCCCCDUL },
+		{ -0.1f, 0xBDCCCCCDUL },
+		{ 1945329.25f, 0x49ED778AUL },
+		{ -23298764.f, 0xCBB1C166UL },
+		{  0.5f, 0x3F000000UL },
+		{ -0.5f, 0xBF000000UL }
+	};
+	for (const auto &v : float_results) {
+		i = f32Tou32Slow(v.first);
+		if (std::abs((s64)v.second - i) > 32) {
+			printf("Inaccurate float values on %.9g, expected 0x%X, actual 0x%X\n",
+				v.first, v.second, i);
+			UASSERT(false);
+		}
+
+		fs = u32Tof32Slow(v.second);
+		if (std::fabs(v.first - fs) > std::fabs(v.first * 0.000005f)) {
+			printf("Inaccurate float values on 0x%X, expected %.9g, actual 0x%.9g\n",
+				v.second, v.first, fs);
+			UASSERT(false);
+		}
+	}
+
+	if (type == FLOATTYPE_SLOW) {
+		// conversion using memcpy is not possible
+		// Skip exact float comparison checks below
+		return;
+	}
+
+	// The code below compares the IEEE conversion functions with a
+	// known good IEC559/IEEE754 implementation. This test neeeds
+	// IEC559 compliance in the compiler.
+#if defined(__GNUC__) && (!defined(__STDC_IEC_559__) || defined(__FAST_MATH__))
+	// GNU C++ lies about its IEC559 support when -ffast-math is active.
+	// https://gcc.gnu.org/bugzilla//show_bug.cgi?id=84949
+	bool is_iec559 = false;
+#else
+	bool is_iec559 = std::numeric_limits<f32>::is_iec559;
+#endif
+	if (!is_iec559)
+		return;
+
+	auto test_single = [&fs, &fm](const u32 &i) -> bool {
+		memcpy(&fm, &i, 4);
+		fs = u32Tof32Slow(i);
+		if (fm != fs) {
+			printf("u32Tof32Slow failed on 0x%X, expected %.9g, actual %.9g\n",
+				i, fm, fs);
+			return false;
+		}
+		if (f32Tou32Slow(fs) != i) {
+			printf("f32Tou32Slow failed on %.9g, expected 0x%X, actual 0x%X\n",
+				fs, i, f32Tou32Slow(fs));
+			return false;
+		}
+		return true;
+	};
+
+	// Use step of prime 277 to speed things up from 3 minutes to a few seconds
+	// Test from 0 to 0xFF800000UL (positive)
+	for (i = 0x00000000UL; i <= 0x7F800000UL; i += 277)
+		UASSERT(test_single(i));
+
+	// Ensure +inf and -inf are tested
+	UASSERT(test_single(0x7F800000UL));
+	UASSERT(test_single(0xFF800000UL));
+
+	// Test from 0x80000000UL to 0xFF800000UL (negative)
+	for (i = 0x80000000UL; i <= 0xFF800000UL; i += 277)
+		UASSERT(test_single(i));
+}
 
 const u8 TestSerialization::test_serialized_data[12 * 13] = {
 	0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc,

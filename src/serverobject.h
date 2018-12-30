@@ -17,9 +17,9 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef SERVEROBJECT_HEADER
-#define SERVEROBJECT_HEADER
+#pragma once
 
+#include <unordered_set>
 #include "irrlichttypes_bloated.h"
 #include "activeobject.h"
 #include "inventorymanager.h"
@@ -44,9 +44,9 @@ Some planning
 
 class ServerEnvironment;
 struct ItemStack;
-class Player;
 struct ToolCapabilities;
 struct ObjectProperties;
+struct PlayerHPChangeReason;
 
 class ServerActiveObject : public ActiveObject
 {
@@ -56,7 +56,7 @@ public:
 		Prototypes are used that way.
 	*/
 	ServerActiveObject(ServerEnvironment *env, v3f pos);
-	virtual ~ServerActiveObject();
+	virtual ~ServerActiveObject() = default;
 
 	virtual ActiveObjectType getSendType() const
 	{ return getType(); }
@@ -69,24 +69,24 @@ public:
 	// environment
 	virtual bool environmentDeletes() const
 	{ return true; }
-	
+
 	// Create a certain type of ServerActiveObject
 	static ServerActiveObject* create(ActiveObjectType type,
 			ServerEnvironment *env, u16 id, v3f pos,
 			const std::string &data);
-	
+
 	/*
 		Some simple getters/setters
 	*/
-	v3f getBasePosition(){ return m_base_position; }
+	v3f getBasePosition() const { return m_base_position; }
 	void setBasePosition(v3f pos){ m_base_position = pos; }
 	ServerEnvironment* getEnv(){ return m_env; }
-	
+
 	/*
 		Some more dynamic interface
 	*/
-	
-	virtual void setPos(v3f pos)
+
+	virtual void setPos(const v3f &pos)
 		{ setBasePosition(pos); }
 	// continuous: if true, object does not stop immediately at pos
 	virtual void moveTo(v3f pos, bool continuous)
@@ -96,7 +96,7 @@ public:
 	virtual float getMinimumSavedMovement();
 
 	virtual std::string getDescription(){return "SAO";}
-	
+
 	/*
 		Step object in time.
 		Messages added to messages are sent to client over network.
@@ -108,22 +108,22 @@ public:
 			packet.
 	*/
 	virtual void step(float dtime, bool send_recommended){}
-	
+
 	/*
 		The return value of this is passed to the client-side object
 		when it is created
 	*/
 	virtual std::string getClientInitializationData(u16 protocol_version){return "";}
-	
+
 	/*
 		The return value of this is passed to the server-side object
 		when it is created (converted from static to active - actually
 		the data is the static form)
 	*/
-	virtual std::string getStaticData()
+	virtual void getStaticData(std::string *result) const
 	{
 		assert(isStaticAllowed());
-		return "";
+		*result = "";
 	}
 	/*
 		Return false in here to never save and instead remove object
@@ -131,7 +131,7 @@ public:
 	*/
 	virtual bool isStaticAllowed() const
 	{return true;}
-	
+
 	// Returns tool wear
 	virtual int punch(v3f dir,
 			const ToolCapabilities *toolcap=NULL,
@@ -140,20 +140,22 @@ public:
 	{ return 0; }
 	virtual void rightClick(ServerActiveObject *clicker)
 	{}
-	virtual void setHP(s16 hp)
+	virtual void setHP(s16 hp, const PlayerHPChangeReason &reason)
 	{}
 	virtual s16 getHP() const
 	{ return 0; }
 
 	virtual void setArmorGroups(const ItemGroupList &armor_groups)
 	{}
-	virtual ItemGroupList getArmorGroups()
-	{ return ItemGroupList(); }
+	virtual const ItemGroupList &getArmorGroups()
+	{ static ItemGroupList rv; return rv; }
 	virtual void setPhysicsOverride(float physics_override_speed, float physics_override_jump, float physics_override_gravity)
 	{}
 	virtual void setAnimation(v2f frames, float frame_speed, float frame_blend, bool frame_loop)
 	{}
 	virtual void getAnimation(v2f *frames, float *frame_speed, float *frame_blend, bool *frame_loop)
+	{}
+	virtual void setAnimationSpeed(float frame_speed)
 	{}
 	virtual void setBonePosition(const std::string &bone, v3f position, v3f rotation)
 	{}
@@ -163,12 +165,15 @@ public:
 	{}
 	virtual void getAttachment(int *parent_id, std::string *bone, v3f *position, v3f *rotation)
 	{}
+	virtual void clearChildAttachments() {}
+	virtual void clearParentAttachment() {}
 	virtual void addAttachmentChild(int child_id)
 	{}
 	virtual void removeAttachmentChild(int child_id)
 	{}
-	virtual std::set<int> getAttachmentChildIds()
-	{ return std::set<int>(); }
+	virtual const std::unordered_set<int> &getAttachmentChildIds()
+	{ static std::unordered_set<int> rv; return rv; }
+	virtual ServerActiveObject *getParent() const { return nullptr; }
 	virtual ObjectProperties* accessObjectProperties()
 	{ return NULL; }
 	virtual void notifyObjectPropertiesModified()
@@ -189,52 +194,68 @@ public:
 	{ return 0; }
 	virtual ItemStack getWieldedItem() const;
 	virtual bool setWieldedItem(const ItemStack &item);
+	inline void attachParticleSpawner(u32 id)
+	{
+		m_attached_particle_spawners.insert(id);
+	}
+	inline void detachParticleSpawner(u32 id)
+	{
+		m_attached_particle_spawners.erase(id);
+	}
+
 
 	/*
 		Number of players which know about this object. Object won't be
 		deleted until this is 0 to keep the id preserved for the right
 		object.
 	*/
-	u16 m_known_by_count;
+	u16 m_known_by_count = 0;
 
 	/*
 		- Whether this object is to be removed when nobody knows about
 		  it anymore.
 		- Removal is delayed to preserve the id for the time during which
 		  it could be confused to some other object by some client.
-		- This is set to true by the step() method when the object wants
-		  to be deleted.
-		- This can be set to true by anything else too.
+		- This is usually set to true by the step() method when the object wants
+		  to be deleted but can be set by anything else too.
 	*/
-	bool m_removed;
-	
-	/*
-		This is set to true when an object should be removed from the active
-		object list but couldn't be removed because the id has to be
-		reserved for some client.
+	bool m_pending_removal = false;
 
-		The environment checks this periodically. If this is true and also
-		m_known_by_count is true, object is deleted from the active object
-		list.
+	/*
+		Same purpose as m_pending_removal but for deactivation.
+		deactvation = save static data in block, remove active object
+
+		If this is set alongside with m_pending_removal, removal takes
+		priority.
 	*/
-	bool m_pending_deactivation;
-	
+	bool m_pending_deactivation = false;
+
+	/*
+		A getter that unifies the above to answer the question:
+		"Can the environment still interact with this object?"
+	*/
+	inline bool isGone() const
+	{ return m_pending_removal || m_pending_deactivation; }
+
 	/*
 		Whether the object's static data has been stored to a block
 	*/
-	bool m_static_exists;
+	bool m_static_exists = false;
 	/*
 		The block from which the object was loaded from, and in which
 		a copy of the static data resides.
 	*/
-	v3s16 m_static_block;
-	
+	v3s16 m_static_block = v3s16(1337,1337,1337);
+
 	/*
 		Queue of messages to be sent to the client
 	*/
 	std::queue<ActiveObjectMessage> m_messages_out;
-	
+
 protected:
+	virtual void onAttach(int parent_id) {}
+	virtual void onDetach(int parent_id) {}
+
 	// Used for creating objects based on type
 	typedef ServerActiveObject* (*Factory)
 			(ServerEnvironment *env, v3f pos,
@@ -243,11 +264,9 @@ protected:
 
 	ServerEnvironment *m_env;
 	v3f m_base_position;
+	std::unordered_set<u32> m_attached_particle_spawners;
 
 private:
 	// Used for creating objects based on type
 	static std::map<u16, Factory> m_types;
 };
-
-#endif
-

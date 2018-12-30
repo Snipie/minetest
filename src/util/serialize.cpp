@@ -21,14 +21,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 #include "pointer.h"
 #include "porting.h"
 #include "util/string.h"
-#include "../exceptions.h"
-#include "../irrlichttypes.h"
+#include "exceptions.h"
+#include "irrlichttypes.h"
 
 #include <sstream>
 #include <iomanip>
 #include <vector>
 
-SerializationError eof_ser_err("Attempted read past end of data");
+FloatType g_serialize_f32_type = FLOATTYPE_UNKNOWN;
 
 ////
 //// BufReader
@@ -156,8 +156,8 @@ std::string serializeWideString(const std::wstring &plain)
 	writeU16((u8 *)buf, plain.size());
 	s.append(buf, 2);
 
-	for (u32 i = 0; i < plain.size(); i++) {
-		writeU16((u8 *)buf, plain[i]);
+	for (wchar_t i : plain) {
+		writeU16((u8 *)buf, i);
 		s.append(buf, 2);
 	}
 	return s;
@@ -246,8 +246,7 @@ std::string serializeJsonString(const std::string &plain)
 	std::ostringstream os(std::ios::binary);
 	os << "\"";
 
-	for (size_t i = 0; i < plain.size(); i++) {
-		char c = plain[i];
+	for (char c : plain) {
 		switch (c) {
 			case '"':
 				os << "\\\"";
@@ -308,7 +307,9 @@ std::string deSerializeJsonString(std::istream &is)
 
 		if (c == '"') {
 			return os.str();
-		} else if (c == '\\') {
+		}
+
+		if (c == '\\') {
 			c2 = is.get();
 			if (is.eof())
 				throw SerializationError("JSON string ended prematurely");
@@ -354,6 +355,56 @@ std::string deSerializeJsonString(std::istream &is)
 	return os.str();
 }
 
+std::string serializeJsonStringIfNeeded(const std::string &s)
+{
+	for (size_t i = 0; i < s.size(); ++i) {
+		if (s[i] <= 0x1f || s[i] >= 0x7f || s[i] == ' ' || s[i] == '\"')
+			return serializeJsonString(s);
+	}
+	return s;
+}
+
+std::string deSerializeJsonStringIfNeeded(std::istream &is)
+{
+	std::ostringstream tmp_os;
+	bool expect_initial_quote = true;
+	bool is_json = false;
+	bool was_backslash = false;
+	for (;;) {
+		char c = is.get();
+		if (is.eof())
+			break;
+
+		if (expect_initial_quote && c == '"') {
+			tmp_os << c;
+			is_json = true;
+		} else if(is_json) {
+			tmp_os << c;
+			if (was_backslash)
+				was_backslash = false;
+			else if (c == '\\')
+				was_backslash = true;
+			else if (c == '"')
+				break; // Found end of string
+		} else {
+			if (c == ' ') {
+				// Found end of word
+				is.unget();
+				break;
+			}
+
+			tmp_os << c;
+		}
+		expect_initial_quote = false;
+	}
+	if (is_json) {
+		std::istringstream tmp_is(tmp_os.str(), std::ios::binary);
+		return deSerializeJsonString(tmp_is);
+	}
+
+	return tmp_os.str();
+}
+
 ////
 //// String/Struct conversions
 ////
@@ -373,7 +424,7 @@ bool deSerializeStringToStruct(std::string valstr,
 
 	char *fmtpos, *fmt = &format[0];
 	while ((f = strtok_r(fmt, ",", &fmtpos)) && s) {
-		fmt = NULL;
+		fmt = nullptr;
 
 		bool is_unsigned = false;
 		int width = 0;
@@ -461,7 +512,7 @@ bool deSerializeStringToStruct(std::string valstr,
 				bufpos += sizeof(std::string *);
 				strs_alloced.push_back(str);
 
-				s = *snext ? snext + 1 : NULL;
+				s = *snext ? snext + 1 : nullptr;
 				break;
 			case 'v':
 				while (*s == ' ' || *s == '\t')
@@ -533,7 +584,7 @@ bool serializeStructToString(std::string *out,
 	char *bufpos = (char *) value;
 	char *fmtpos, *fmt = &format[0];
 	while ((f = strtok_r(fmt, ",", &fmtpos))) {
-		fmt = NULL;
+		fmt = nullptr;
 		bool is_unsigned = false;
 		int width = 0;
 		char valtype = *f;

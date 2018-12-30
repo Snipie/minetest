@@ -17,14 +17,24 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef GETTEXT_HEADER
-#define GETTEXT_HEADER
+#pragma once
 
 #include "config.h" // for USE_GETTEXT
+#include <string>
 
 #if USE_GETTEXT
 	#include <libintl.h>
 #else
+	// In certain environments, some standard headers like <iomanip>
+	// and <locale> include libintl.h. If libintl.h is included after
+	// we define our gettext macro below, this causes a syntax error
+	// at the declaration of the gettext function in libintl.h.
+	// Fix this by including such a header before defining the macro.
+	// See issue #4446.
+	// Note that we can't include libintl.h directly since we're in
+	// the USE_GETTEXT=0 case and can't assume that gettext is installed.
+	#include <locale>
+
 	#define gettext(String) String
 #endif
 
@@ -41,12 +51,11 @@ extern wchar_t *utf8_to_wide_c(const char *str);
 // The returned string is allocated using new
 inline const wchar_t *wgettext(const char *str)
 {
-	return utf8_to_wide_c(gettext(str));
+	// We must check here that is not an empty string to avoid trying to translate it
+	return str[0] ? utf8_to_wide_c(gettext(str)) : utf8_to_wide_c("");
 }
 
 inline std::string strgettext(const std::string &text)
 {
-	return gettext(text.c_str());
+	return text.empty() ? "" : gettext(text.c_str());
 }
-
-#endif

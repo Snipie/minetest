@@ -17,49 +17,38 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifdef _MSC_VER
-	#ifndef SERVER // Dedicated server isn't linked with Irrlicht
-		#pragma comment(lib, "Irrlicht.lib")
-		// This would get rid of the console window
-		//#pragma comment(linker, "/subsystem:windows /ENTRY:mainCRTStartup")
-	#endif
-	#pragma comment(lib, "zlibwapi.lib")
-	#pragma comment(lib, "Shell32.lib")
-#endif
-
 #include "irrlicht.h" // createDevice
-
-#include "mainmenumanager.h"
 #include "irrlichttypes_extrabloated.h"
+#include "chat_interface.h"
 #include "debug.h"
 #include "unittest/test.h"
 #include "server.h"
 #include "filesys.h"
 #include "version.h"
-#include "guiMainMenu.h"
-#include "game.h"
+#include "client/game.h"
 #include "defaultsettings.h"
 #include "gettext.h"
 #include "log.h"
 #include "quicktune.h"
 #include "httpfetch.h"
-#include "guiEngine.h"
-#include "map.h"
-#include "player.h"
-#include "mapsector.h"
-#include "fontengine.h"
 #include "gameparams.h"
-#include "database.h"
+#include "database/database.h"
 #include "config.h"
+#include "player.h"
+#include "porting.h"
+#include "network/socket.h"
 #if USE_CURSES
 	#include "terminal_chat_console.h"
 #endif
 #ifndef SERVER
+#include "gui/guiMainMenu.h"
 #include "client/clientlauncher.h"
+#include "gui/guiEngine.h"
+#include "gui/mainmenumanager.h"
 #endif
 
 #ifdef HAVE_TOUCHSCREENGUI
-	#include "touchscreengui.h"
+	#include "gui/touchscreengui.h"
 #endif
 
 #if !defined(SERVER) && \
@@ -85,11 +74,11 @@ static void print_help(const OptionList &allowed_options);
 static void print_allowed_options(const OptionList &allowed_options);
 static void print_version();
 static void print_worldspecs(const std::vector<WorldSpec> &worldspecs,
-							 std::ostream &os);
+	std::ostream &os, bool print_name = true, bool print_path = true);
 static void print_modified_quicktune_values();
 
 static void list_game_ids();
-static void list_worlds();
+static void list_worlds(bool print_name, bool print_path);
 static void setup_log_params(const Settings &cmd_args);
 static bool create_userdata_path();
 static bool init_common(const Settings &cmd_args, int argc, char *argv[]);
@@ -111,28 +100,10 @@ static bool get_game_from_cmdline(GameParams *game_params, const Settings &cmd_a
 static bool determine_subgame(GameParams *game_params);
 
 static bool run_dedicated_server(const GameParams &game_params, const Settings &cmd_args);
-static bool migrate_database(const GameParams &game_params, const Settings &cmd_args);
+static bool migrate_map_database(const GameParams &game_params, const Settings &cmd_args);
 
 /**********************************************************************/
 
-/*
-	gettime.h implementation
-*/
-
-#ifdef SERVER
-
-u32 getTimeMs()
-{
-	/* Use imprecise system calls directly (from porting.h) */
-	return porting::getTime(PRECISION_MILLI);
-}
-
-u32 getTime(TimePrecision prec)
-{
-	return porting::getTime(prec);
-}
-
-#endif
 
 FileLogOutput file_log_output;
 
@@ -141,7 +112,6 @@ static OptionList allowed_options;
 int main(int argc, char *argv[])
 {
 	int retval;
-
 	debug_set_exception_handler();
 
 	g_logger.registerThread("Main");
@@ -152,11 +122,15 @@ int main(int argc, char *argv[])
 	if (!cmd_args_ok
 			|| cmd_args.getFlag("help")
 			|| cmd_args.exists("nonopt1")) {
+		porting::attachOrCreateConsole();
 		print_help(allowed_options);
 		return cmd_args_ok ? 0 : 1;
 	}
+	if (cmd_args.getFlag("console"))
+		porting::attachOrCreateConsole();
 
 	if (cmd_args.getFlag("version")) {
+		porting::attachOrCreateConsole();
 		print_version();
 		return 0;
 	}
@@ -177,9 +151,6 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	// Initialize debug stacks
-	DSTACK(FUNCTION_NAME);
-
 	// Debug handler
 	BEGIN_DEBUG_EXCEPTION_HANDLER
 
@@ -189,14 +160,23 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
-	// List worlds if requested
-	if (cmd_args.exists("world") && cmd_args.get("world") == "list") {
-		list_worlds();
+	// List worlds, world names, and world paths if requested
+	if (cmd_args.exists("worldlist")) {
+		if (cmd_args.get("worldlist") == "name") {
+			list_worlds(true, false);
+		} else if (cmd_args.get("worldlist") == "path") {
+			list_worlds(false, true);
+		} else {
+			list_worlds(true, true);
+		}
 		return 0;
 	}
 
 	if (!init_common(cmd_args, argc, argv))
 		return 1;
+
+	if (g_settings->getBool("enable_console"))
+		porting::attachOrCreateConsole();
 
 #ifndef __ANDROID__
 	// Run unit tests
@@ -207,9 +187,13 @@ int main(int argc, char *argv[])
 
 	GameParams game_params;
 #ifdef SERVER
+	porting::attachOrCreateConsole();
 	game_params.is_dedicated_server = true;
 #else
-	game_params.is_dedicated_server = cmd_args.getFlag("server");
+	const bool isServer = cmd_args.getFlag("server");
+	if (isServer)
+		porting::attachOrCreateConsole();
+	game_params.is_dedicated_server = isServer;
 #endif
 
 	if (!game_configure(&game_params, cmd_args))
@@ -219,10 +203,6 @@ int main(int argc, char *argv[])
 
 	infostream << "Using commanded world path ["
 	           << game_params.world_path << "]" << std::endl;
-
-	//Run dedicated server if asked to or no other option
-	g_settings->set("server_dedicated",
-			game_params.is_dedicated_server ? "true" : "false");
 
 	if (game_params.is_dedicated_server)
 		return run_dedicated_server(game_params, cmd_args) ? 0 : 1;
@@ -235,7 +215,7 @@ int main(int argc, char *argv[])
 #endif
 
 	// Update configuration file
-	if (g_settings_path != "")
+	if (!g_settings_path.empty())
 		g_settings->updateConfigFile(g_settings_path.c_str());
 
 	print_modified_quicktune_values();
@@ -278,11 +258,23 @@ static void set_allowed_options(OptionList *allowed_options)
 	allowed_options->insert(std::make_pair("map-dir", ValueSpec(VALUETYPE_STRING,
 			_("Same as --world (deprecated)"))));
 	allowed_options->insert(std::make_pair("world", ValueSpec(VALUETYPE_STRING,
-			_("Set world path (implies local game) ('list' lists all)"))));
+			_("Set world path (implies local game)"))));
 	allowed_options->insert(std::make_pair("worldname", ValueSpec(VALUETYPE_STRING,
 			_("Set world by name (implies local game)"))));
+	allowed_options->insert(std::make_pair("worldlist", ValueSpec(VALUETYPE_STRING,
+			_("Get list of worlds (implies local game) ('path' lists paths, "
+			"'name' lists names, 'both' lists both)"))));
 	allowed_options->insert(std::make_pair("quiet", ValueSpec(VALUETYPE_FLAG,
 			_("Print to console errors only"))));
+#if !defined(_WIN32)
+	allowed_options->insert(std::make_pair("color", ValueSpec(VALUETYPE_STRING,
+			_("Coloured logs ('always', 'never' or 'auto'), defaults to 'auto'"
+			))));
+#else
+	allowed_options->insert(std::make_pair("color", ValueSpec(VALUETYPE_STRING,
+			_("Coloured logs ('always' or 'never'), defaults to 'never'"
+			))));
+#endif
 	allowed_options->insert(std::make_pair("info", ValueSpec(VALUETYPE_FLAG,
 			_("Print more information to console"))));
 	allowed_options->insert(std::make_pair("verbose",  ValueSpec(VALUETYPE_FLAG,
@@ -295,6 +287,10 @@ static void set_allowed_options(OptionList *allowed_options)
 			_("Set gameid (\"--gameid list\" prints available ones)"))));
 	allowed_options->insert(std::make_pair("migrate", ValueSpec(VALUETYPE_STRING,
 			_("Migrate from current map backend to another (Only works when using minetestserver or with --server)"))));
+	allowed_options->insert(std::make_pair("migrate-players", ValueSpec(VALUETYPE_STRING,
+		_("Migrate from current players backend to another (Only works when using minetestserver or with --server)"))));
+	allowed_options->insert(std::make_pair("migrate-auth", ValueSpec(VALUETYPE_STRING,
+		_("Migrate from current auth backend to another (Only works when using minetestserver or with --server)"))));
 	allowed_options->insert(std::make_pair("terminal", ValueSpec(VALUETYPE_FLAG,
 			_("Feature an interactive terminal (Only works when using minetestserver or with --server)"))));
 #ifndef SERVER
@@ -312,8 +308,12 @@ static void set_allowed_options(OptionList *allowed_options)
 			_("Set player name"))));
 	allowed_options->insert(std::make_pair("password", ValueSpec(VALUETYPE_STRING,
 			_("Set password"))));
+	allowed_options->insert(std::make_pair("password-file", ValueSpec(VALUETYPE_STRING,
+			_("Set password from contents of file"))));
 	allowed_options->insert(std::make_pair("go", ValueSpec(VALUETYPE_FLAG,
 			_("Disable main menu"))));
+	allowed_options->insert(std::make_pair("console", ValueSpec(VALUETYPE_FLAG,
+		_("Starts with the console (Windows only)"))));
 #endif
 
 }
@@ -326,17 +326,16 @@ static void print_help(const OptionList &allowed_options)
 
 static void print_allowed_options(const OptionList &allowed_options)
 {
-	for (OptionList::const_iterator i = allowed_options.begin();
-			i != allowed_options.end(); ++i) {
+	for (const auto &allowed_option : allowed_options) {
 		std::ostringstream os1(std::ios::binary);
-		os1 << "  --" << i->first;
-		if (i->second.type != VALUETYPE_FLAG)
+		os1 << "  --" << allowed_option.first;
+		if (allowed_option.second.type != VALUETYPE_FLAG)
 			os1 << _(" <value>");
 
-		std::cout << padStringRight(os1.str(), 24);
+		std::cout << padStringRight(os1.str(), 30);
 
-		if (i->second.help != NULL)
-			std::cout << i->second.help;
+		if (allowed_option.second.help)
+			std::cout << allowed_option.second.help;
 
 		std::cout << std::endl;
 	}
@@ -345,39 +344,40 @@ static void print_allowed_options(const OptionList &allowed_options)
 static void print_version()
 {
 	std::cout << PROJECT_NAME_C " " << g_version_hash
-	          << " (" << porting::getPlatformName() << ")" << std::endl;
+		<< " (" << porting::getPlatformName() << ")" << std::endl;
 #ifndef SERVER
-	std::cout << "Using Irrlicht " << IRRLICHT_SDK_VERSION << std::endl;
+	std::cout << "Using Irrlicht " IRRLICHT_SDK_VERSION << std::endl;
 #endif
-	std::cout << "Build info: " << g_build_info << std::endl;
+	std::cout << g_build_info << std::endl;
 }
 
 static void list_game_ids()
 {
 	std::set<std::string> gameids = getAvailableGameIds();
-	for (std::set<std::string>::const_iterator i = gameids.begin();
-			i != gameids.end(); ++i)
-		std::cout << (*i) <<std::endl;
+	for (const std::string &gameid : gameids)
+		std::cout << gameid <<std::endl;
 }
 
-static void list_worlds()
+static void list_worlds(bool print_name, bool print_path)
 {
 	std::cout << _("Available worlds:") << std::endl;
 	std::vector<WorldSpec> worldspecs = getAvailableWorlds();
-	print_worldspecs(worldspecs, std::cout);
+	print_worldspecs(worldspecs, std::cout, print_name, print_path);
 }
 
 static void print_worldspecs(const std::vector<WorldSpec> &worldspecs,
-							 std::ostream &os)
+	std::ostream &os, bool print_name, bool print_path)
 {
-	for (size_t i = 0; i < worldspecs.size(); i++) {
-		std::string name = worldspecs[i].name;
-		std::string path = worldspecs[i].path;
-		if (name.find(" ") != std::string::npos)
-			name = std::string("'") + name + "'";
-		path = std::string("'") + path + "'";
-		name = padStringRight(name, 14);
-		os << "  " << name << " " << path << std::endl;
+	for (const WorldSpec &worldspec : worldspecs) {
+		std::string name = worldspec.name;
+		std::string path = worldspec.path;
+		if (print_name && print_path) {
+			os << "\t" << name << "\t\t" << path << std::endl;
+		} else if (print_name) {
+			os << "\t" << name << std::endl;
+		} else if (print_path) {
+			os << "\t" << path << std::endl;
+		}
 	}
 }
 
@@ -386,15 +386,15 @@ static void print_modified_quicktune_values()
 	bool header_printed = false;
 	std::vector<std::string> names = getQuicktuneNames();
 
-	for (u32 i = 0; i < names.size(); i++) {
-		QuicktuneValue val = getQuicktuneValue(names[i]);
+	for (const std::string &name : names) {
+		QuicktuneValue val = getQuicktuneValue(name);
 		if (!val.modified)
 			continue;
 		if (!header_printed) {
 			dstream << "Modified quicktune values:" << std::endl;
 			header_printed = true;
 		}
-		dstream << names[i] << " = " << val.getString() << std::endl;
+		dstream << name << " = " << val.getString() << std::endl;
 	}
 }
 
@@ -404,6 +404,17 @@ static void setup_log_params(const Settings &cmd_args)
 	if (cmd_args.getFlag("quiet")) {
 		g_logger.removeOutput(&stderr_output);
 		g_logger.addOutputMaxLevel(&stderr_output, LL_ERROR);
+	}
+
+	// Coloured log messages (see log.h)
+	if (cmd_args.exists("color")) {
+		std::string mode = cmd_args.get("color");
+		if (mode == "auto")
+			Logger::color_mode = LOG_COLOR_AUTO;
+		else if (mode == "always")
+			Logger::color_mode = LOG_COLOR_ALWAYS;
+		else
+			Logger::color_mode = LOG_COLOR_NEVER;
 	}
 
 	// If trace is enabled, enable logging of certain things
@@ -505,16 +516,16 @@ static bool read_config_file(const Settings &cmd_args)
 				DIR_DELIM + ".." + DIR_DELIM + ".." + DIR_DELIM + "minetest.conf");
 #endif
 
-		for (size_t i = 0; i < filenames.size(); i++) {
-			bool r = g_settings->readConfigFile(filenames[i].c_str());
+		for (const std::string &filename : filenames) {
+			bool r = g_settings->readConfigFile(filename.c_str());
 			if (r) {
-				g_settings_path = filenames[i];
+				g_settings_path = filename;
 				break;
 			}
 		}
 
 		// If no path found, use the first one (menu creates the file)
-		if (g_settings_path == "")
+		if (g_settings_path.empty())
 			g_settings_path = filenames[0];
 	}
 
@@ -523,11 +534,8 @@ static bool read_config_file(const Settings &cmd_args)
 
 static void init_log_streams(const Settings &cmd_args)
 {
-#if RUN_IN_PLACE
-	std::string log_filename = DEBUGFILE;
-#else
 	std::string log_filename = porting::path_user + DIR_DELIM + DEBUGFILE;
-#endif
+
 	if (cmd_args.exists("logfile"))
 		log_filename = cmd_args.get("logfile");
 
@@ -560,7 +568,7 @@ static void init_log_streams(const Settings &cmd_args)
 
 	verbosestream << "log_filename = " << log_filename << std::endl;
 
-	file_log_output.open(log_filename.c_str());
+	file_log_output.open(log_filename);
 	g_logger.addOutputMaxLevel(&file_log_output, log_level);
 }
 
@@ -593,6 +601,7 @@ static bool game_configure_world(GameParams *game_params, const Settings &cmd_ar
 {
 	if (get_world_from_cmdline(game_params, cmd_args))
 		return true;
+
 	if (get_world_from_config(game_params, cmd_args))
 		return true;
 
@@ -601,24 +610,24 @@ static bool game_configure_world(GameParams *game_params, const Settings &cmd_ar
 
 static bool get_world_from_cmdline(GameParams *game_params, const Settings &cmd_args)
 {
-	std::string commanded_world = "";
+	std::string commanded_world;
 
 	// World name
-	std::string commanded_worldname = "";
+	std::string commanded_worldname;
 	if (cmd_args.exists("worldname"))
 		commanded_worldname = cmd_args.get("worldname");
 
 	// If a world name was specified, convert it to a path
-	if (commanded_worldname != "") {
+	if (!commanded_worldname.empty()) {
 		// Get information about available worlds
 		std::vector<WorldSpec> worldspecs = getAvailableWorlds();
 		bool found = false;
-		for (u32 i = 0; i < worldspecs.size(); i++) {
-			std::string name = worldspecs[i].name;
+		for (const WorldSpec &worldspec : worldspecs) {
+			std::string name = worldspec.name;
 			if (name == commanded_worldname) {
 				dstream << _("Using world specified by --worldname on the "
 					"command line") << std::endl;
-				commanded_world = worldspecs[i].path;
+				commanded_world = worldspec.path;
 				found = true;
 				break;
 			}
@@ -631,7 +640,7 @@ static bool get_world_from_cmdline(GameParams *game_params, const Settings &cmd_
 		}
 
 		game_params->world_path = get_clean_world_path(commanded_world);
-		return commanded_world != "";
+		return !commanded_world.empty();
 	}
 
 	if (cmd_args.exists("world"))
@@ -642,20 +651,20 @@ static bool get_world_from_cmdline(GameParams *game_params, const Settings &cmd_
 		commanded_world = cmd_args.get("nonopt0");
 
 	game_params->world_path = get_clean_world_path(commanded_world);
-	return commanded_world != "";
+	return !commanded_world.empty();
 }
 
 static bool get_world_from_config(GameParams *game_params, const Settings &cmd_args)
 {
 	// World directory
-	std::string commanded_world = "";
+	std::string commanded_world;
 
 	if (g_settings->exists("map-dir"))
 		commanded_world = g_settings->get("map-dir");
 
 	game_params->world_path = get_clean_world_path(commanded_world);
 
-	return commanded_world != "";
+	return !commanded_world.empty();
 }
 
 static bool auto_select_world(GameParams *game_params)
@@ -749,8 +758,8 @@ static bool determine_subgame(GameParams *game_params)
 
 	verbosestream << _("Determining gameid/gamespec") << std::endl;
 	// If world doesn't exist
-	if (game_params->world_path != ""
-			&& !getWorldExists(game_params->world_path)) {
+	if (!game_params->world_path.empty()
+		&& !getWorldExists(game_params->world_path)) {
 		// Try to take gamespec from command line
 		if (game_params->game_spec.isValid()) {
 			gamespec = game_params->game_spec;
@@ -799,8 +808,6 @@ static bool determine_subgame(GameParams *game_params)
  *****************************************************************************/
 static bool run_dedicated_server(const GameParams &game_params, const Settings &cmd_args)
 {
-	DSTACK("Dedicated server branch");
-
 	verbosestream << _("Using world path") << " ["
 	              << game_params.world_path << "]" << std::endl;
 	verbosestream << _("Using gameid") << " ["
@@ -829,7 +836,13 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 
 	// Database migration
 	if (cmd_args.exists("migrate"))
-		return migrate_database(game_params, cmd_args);
+		return migrate_map_database(game_params, cmd_args);
+
+	if (cmd_args.exists("migrate-players"))
+		return ServerEnvironment::migratePlayersDatabase(game_params, cmd_args);
+
+	if (cmd_args.exists("migrate-auth"))
+		return ServerEnvironment::migrateAuthDatabase(game_params, cmd_args);
 
 	if (cmd_args.exists("terminal")) {
 #if USE_CURSES
@@ -859,14 +872,15 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 
 		try {
 			// Create server
-			Server server(game_params.world_path,
-				game_params.game_spec, false, bind_addr.isIPv6(), &iface);
+			Server server(game_params.world_path, game_params.game_spec,
+					false, bind_addr, true, &iface);
+			server.init();
 
 			g_term_console.setup(&iface, &kill, admin_nick);
 
 			g_term_console.start();
 
-			server.start(bind_addr);
+			server.start();
 			// Run server
 			dedicated_server_loop(server, kill);
 		} catch (const ModError &e) {
@@ -894,8 +908,9 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 		try {
 			// Create server
 			Server server(game_params.world_path, game_params.game_spec, false,
-				bind_addr.isIPv6());
-			server.start(bind_addr);
+				bind_addr, true);
+			server.init();
+			server.start();
 
 			// Run server
 			bool &kill = *porting::signal_handler_killstatus();
@@ -913,7 +928,7 @@ static bool run_dedicated_server(const GameParams &game_params, const Settings &
 	return true;
 }
 
-static bool migrate_database(const GameParams &game_params, const Settings &cmd_args)
+static bool migrate_map_database(const GameParams &game_params, const Settings &cmd_args)
 {
 	std::string migrate_to = cmd_args.get("migrate");
 	Settings world_mt;
@@ -922,20 +937,23 @@ static bool migrate_database(const GameParams &game_params, const Settings &cmd_
 		errorstream << "Cannot read world.mt!" << std::endl;
 		return false;
 	}
+
 	if (!world_mt.exists("backend")) {
 		errorstream << "Please specify your current backend in world.mt:"
 			<< std::endl
-			<< "	backend = {sqlite3|leveldb|redis|dummy}"
+			<< "	backend = {sqlite3|leveldb|redis|dummy|postgresql}"
 			<< std::endl;
 		return false;
 	}
+
 	std::string backend = world_mt.get("backend");
 	if (backend == migrate_to) {
 		errorstream << "Cannot migrate: new backend is same"
 			<< " as the old one" << std::endl;
 		return false;
 	}
-	Database *old_db = ServerMap::createDatabase(backend, game_params.world_path, world_mt),
+
+	MapDatabase *old_db = ServerMap::createDatabase(backend, game_params.world_path, world_mt),
 		*new_db = ServerMap::createDatabase(migrate_to, game_params.world_path, world_mt);
 
 	u32 count = 0;
@@ -977,4 +995,3 @@ static bool migrate_database(const GameParams &game_params, const Settings &cmd_
 
 	return true;
 }
-

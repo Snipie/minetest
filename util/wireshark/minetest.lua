@@ -42,6 +42,7 @@ minetest_client_commands = {}
 minetest_client_obsolete = {}
 
 -- TOSERVER_INIT
+minetest_client_commands[0x02] = { "INIT", 2 }
 
 do
 	local f_ser_fmt = ProtoField.uint8("minetest.client.init_ser_version",
@@ -51,7 +52,7 @@ do
 	local f_version = ProtoField.uint16("minetest.client.init_version", "Version", base.DEC)
 
 	minetest_client_commands[0x10] = {
-		"INIT",                             -- Command name
+		"INIT_LEGACY",                      -- Command name
 		53,                                 -- Minimum message length including code
 		{ f_ser_fmt,                        -- List of fields [optional]
 		  f_player_name,
@@ -117,7 +118,7 @@ end
 
 do
 	local f_count = ProtoField.uint8("minetest.client.gotblocks_count", "Count", base.DEC)
-	local f_block = ProtoField.bytes("minetest.client.gotblocks_block", "Block", base.DEC)
+	local f_block = ProtoField.bytes("minetest.client.gotblocks_block", "Block", base.NONE)
 	local f_x = ProtoField.int16("minetest.client.gotblocks_x", "Block position X", base.DEC)
 	local f_y = ProtoField.int16("minetest.client.gotblocks_y", "Block position Y", base.DEC)
 	local f_z = ProtoField.int16("minetest.client.gotblocks_z", "Block position Z", base.DEC)
@@ -151,7 +152,7 @@ end
 
 do
 	local f_count = ProtoField.uint8("minetest.client.deletedblocks_count", "Count", base.DEC)
-	local f_block = ProtoField.bytes("minetest.client.deletedblocks_block", "Block", base.DEC)
+	local f_block = ProtoField.bytes("minetest.client.deletedblocks_block", "Block", base.NONE)
 	local f_x = ProtoField.int16("minetest.client.deletedblocks_x", "Block position X", base.DEC)
 	local f_y = ProtoField.int16("minetest.client.deletedblocks_y", "Block position Y", base.DEC)
 	local f_z = ProtoField.int16("minetest.client.deletedblocks_z", "Block position Z", base.DEC)
@@ -428,9 +429,19 @@ do
 end
 
 -- TOSERVER_RESPAWN
-
 minetest_client_commands[0x38] = { "RESPAWN", 2 }
 
+minetest_client_commands[0x39] = { "INTERACT", 2 }
+minetest_client_commands[0x3a] = { "REMOVED_SOUNDS", 2 }
+minetest_client_commands[0x3b] = { "NODEMETA_FIELDS", 2 }
+minetest_client_commands[0x3c] = { "INVENTORY_FIELDS", 2 }
+minetest_client_commands[0x40] = { "REQUEST_MEDIA", 2 }
+minetest_client_commands[0x41] = { "RECEIVED_MEDIA", 2 }
+minetest_client_commands[0x42] = { "BREATH", 2 }
+minetest_client_commands[0x43] = { "CLIENT_READY", 2 }
+minetest_client_commands[0x50] = { "FIRST_SRP", 2 }
+minetest_client_commands[0x51] = { "SRP_BYTES_A", 2 }
+minetest_client_commands[0x52] = { "SRP_BYTES_M", 2 }
 
 
 
@@ -443,6 +454,12 @@ minetest_server_commands = {}
 minetest_server_obsolete = {}
 
 -- TOCLIENT_INIT
+
+minetest_server_commands[0x02] = {"HELLO", 2}
+minetest_server_commands[0x03] = {"AUTH_ACCEPT", 2}
+minetest_server_commands[0x04] = {"ACCEPT_SUDO_MODE", 2}
+minetest_server_commands[0x05] = {"DENY_SUDO_MODE", 2}
+minetest_server_commands[0x0A] = {"ACCESS_DENIED", 2}
 
 do
 	local f_version = ProtoField.uint8("minetest.server.init_version", "Deployed version", base.DEC)
@@ -531,7 +548,7 @@ minetest_server_obsolete[0x23] = true
 
 do
 	local f_count = ProtoField.uint16("minetest.server.playerinfo_count", "Count", base.DEC)
-	local f_player = ProtoField.bytes("minetest.server.playerinfo_player", "Player", base.DEC)
+	local f_player = ProtoField.bytes("minetest.server.playerinfo_player", "Player", base.NONE)
 	local f_peer_id = ProtoField.uint16("minetest.server.playerinfo_peer_id", "Peer ID", base.DEC)
 	local f_name = ProtoField.string("minetest.server.playerinfo_name", "Name")
 
@@ -974,7 +991,36 @@ do
 	}
 end
 
-
+minetest_server_commands[0x38] = {"MEDIA", 2}
+minetest_server_commands[0x39] = {"TOOLDEF", 2}
+minetest_server_commands[0x3a] = {"NODEDEF", 2}
+minetest_server_commands[0x3b] = {"CRAFTITEMDEF", 2}
+minetest_server_commands[0x3c] = {"ANNOUNCE_MEDIA", 2}
+minetest_server_commands[0x3d] = {"ITEMDEF", 2}
+minetest_server_commands[0x3f] = {"PLAY_SOUND", 2}
+minetest_server_commands[0x40] = {"STOP_SOUND", 2}
+minetest_server_commands[0x41] = {"PRIVILEGES", 2}
+minetest_server_commands[0x42] = {"INVENTORY_FORMSPEC", 2}
+minetest_server_commands[0x43] = {"DETACHED_INVENTORY", 2}
+minetest_server_commands[0x44] = {"SHOW_FORMSPEC", 2}
+minetest_server_commands[0x45] = {"MOVEMENT", 2}
+minetest_server_commands[0x46] = {"SPAWN_PARTICLE", 2}
+minetest_server_commands[0x47] = {"ADD_PARTICLE_SPAWNER", 2}
+minetest_server_commands[0x48] = {"DELETE_PARTICLESPAWNER_LEGACY", 2}
+minetest_server_commands[0x49] = {"HUDADD", 2}
+minetest_server_commands[0x4a] = {"HUDRM", 2}
+minetest_server_commands[0x4b] = {"HUDCHANGE", 2}
+minetest_server_commands[0x4c] = {"HUD_SET_FLAGS", 2}
+minetest_server_commands[0x4d] = {"HUD_SET_PARAM", 2}
+minetest_server_commands[0x4e] = {"BREATH", 2}
+minetest_server_commands[0x4f] = {"SET_SKY", 2}
+minetest_server_commands[0x50] = {"OVERRIDE_DAY_NIGHT_RATIO", 2}
+minetest_server_commands[0x51] = {"LOCAL_PLAYER_ANIMATIONS", 2}
+minetest_server_commands[0x52] = {"EYE_OFFSET", 2}
+minetest_server_commands[0x53] = {"DELETE_PARTICLESPAWNER", 2}
+minetest_server_commands[0x54] = {"CLOUD_PARAMS", 2}
+minetest_server_commands[0x55] = {"FADE_SOUND", 2}
+minetest_server_commands[0x61] = {"SRP_BYTES_S_B", 2}
 
 
 ------------------------------------

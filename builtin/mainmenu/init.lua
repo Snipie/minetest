@@ -16,34 +16,34 @@
 --51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 mt_color_grey  = "#AAAAAA"
-mt_color_blue  = "#0000DD"
-mt_color_green = "#00DD00"
-mt_color_dark_green = "#003300"
+mt_color_blue  = "#6389FF"
+mt_color_green = "#72FF63"
+mt_color_dark_green = "#25C191"
 
 --for all other colors ask sfan5 to complete his work!
 
 local menupath = core.get_mainmenu_path()
 local basepath = core.get_builtin_path()
+local menustyle = core.settings:get("main_menu_style")
 defaulttexturedir = core.get_texturepath_share() .. DIR_DELIM .. "base" ..
 					DIR_DELIM .. "pack" .. DIR_DELIM
 
-dofile(basepath .. DIR_DELIM .. "common" .. DIR_DELIM .. "async_event.lua")
-dofile(basepath .. DIR_DELIM .. "common" .. DIR_DELIM .. "filterlist.lua")
-dofile(basepath .. DIR_DELIM .. "fstk" .. DIR_DELIM .. "buttonbar.lua")
-dofile(basepath .. DIR_DELIM .. "fstk" .. DIR_DELIM .. "dialog.lua")
-dofile(basepath .. DIR_DELIM .. "fstk" .. DIR_DELIM .. "tabview.lua")
-dofile(basepath .. DIR_DELIM .. "fstk" .. DIR_DELIM .. "ui.lua")
+dofile(basepath .. "common" .. DIR_DELIM .. "async_event.lua")
+dofile(basepath .. "common" .. DIR_DELIM .. "filterlist.lua")
+dofile(basepath .. "fstk" .. DIR_DELIM .. "buttonbar.lua")
+dofile(basepath .. "fstk" .. DIR_DELIM .. "dialog.lua")
+dofile(basepath .. "fstk" .. DIR_DELIM .. "tabview.lua")
+dofile(basepath .. "fstk" .. DIR_DELIM .. "ui.lua")
 dofile(menupath .. DIR_DELIM .. "common.lua")
-dofile(menupath .. DIR_DELIM .. "gamemgr.lua")
-dofile(menupath .. DIR_DELIM .. "modmgr.lua")
-dofile(menupath .. DIR_DELIM .. "store.lua")
+dofile(menupath .. DIR_DELIM .. "pkgmgr.lua")
 dofile(menupath .. DIR_DELIM .. "textures.lua")
 
 dofile(menupath .. DIR_DELIM .. "dlg_config_world.lua")
 dofile(menupath .. DIR_DELIM .. "dlg_settings_advanced.lua")
-if PLATFORM ~= "Android" then
+dofile(menupath .. DIR_DELIM .. "dlg_contentstore.lua")
+if menustyle ~= "simple" then
 	dofile(menupath .. DIR_DELIM .. "dlg_create_world.lua")
-	dofile(menupath .. DIR_DELIM .. "dlg_delete_mod.lua")
+	dofile(menupath .. DIR_DELIM .. "dlg_delete_content.lua")
 	dofile(menupath .. DIR_DELIM .. "dlg_delete_world.lua")
 	dofile(menupath .. DIR_DELIM .. "dlg_rename_modpack.lua")
 end
@@ -51,15 +51,13 @@ end
 local tabs = {}
 
 tabs.settings = dofile(menupath .. DIR_DELIM .. "tab_settings.lua")
-tabs.mods = dofile(menupath .. DIR_DELIM .. "tab_mods.lua")
-tabs.credits = dofile(menupath .. DIR_DELIM .. "tab_credits.lua")
-if PLATFORM == "Android" then
+tabs.content  = dofile(menupath .. DIR_DELIM .. "tab_content.lua")
+tabs.credits  = dofile(menupath .. DIR_DELIM .. "tab_credits.lua")
+if menustyle == "simple" then
 	tabs.simple_main = dofile(menupath .. DIR_DELIM .. "tab_simple_main.lua")
 else
-	tabs.singleplayer = dofile(menupath .. DIR_DELIM .. "tab_singleplayer.lua")
-	tabs.multiplayer = dofile(menupath .. DIR_DELIM .. "tab_multiplayer.lua")
-	tabs.server = dofile(menupath .. DIR_DELIM .. "tab_server.lua")
-	tabs.texturepacks = dofile(menupath .. DIR_DELIM .. "tab_texturepacks.lua")
+	tabs.local_game = dofile(menupath .. DIR_DELIM .. "tab_local.lua")
+	tabs.play_online = dofile(menupath .. DIR_DELIM .. "tab_online.lua")
 end
 
 --------------------------------------------------------------------------------
@@ -75,7 +73,7 @@ local function init_globals()
 	-- Init gamedata
 	gamedata.worldindex = 0
 
-	if PLATFORM == "Android" then
+	if menustyle == "simple" then
 		local world_list = core.get_worlds()
 		local world_index
 
@@ -119,47 +117,37 @@ local function init_globals()
 		menudata.worldlist:add_sort_mechanism("alphabetic", sort_worlds_alphabetic)
 		menudata.worldlist:set_sortmode("alphabetic")
 
-		if not core.setting_get("menu_last_game") then
-			local default_game = core.setting_get("default_game") or "minetest"
-			core.setting_set("menu_last_game", default_game)
+		if not core.settings:get("menu_last_game") then
+			local default_game = core.settings:get("default_game") or "minetest"
+			core.settings:set("menu_last_game", default_game)
 		end
 
 		mm_texture.init()
 	end
 
 	-- Create main tabview
-	local tv_main = tabview_create("maintab", {x = 12, y = 5.2}, {x = 0, y = 0})
+	local tv_main = tabview_create("maintab", {x = 12, y = 5.4}, {x = 0, y = 0})
 
-	if PLATFORM == "Android" then
+	if menustyle == "simple" then
 		tv_main:add(tabs.simple_main)
-		tv_main:add(tabs.settings)
 	else
 		tv_main:set_autosave_tab(true)
-		tv_main:add(tabs.singleplayer)
-		tv_main:add(tabs.multiplayer)
-		tv_main:add(tabs.server)
-		tv_main:add(tabs.settings)
-		tv_main:add(tabs.texturepacks)
+		tv_main:add(tabs.local_game)
+		tv_main:add(tabs.play_online)
 	end
 
-	tv_main:add(tabs.mods)
+	tv_main:add(tabs.content)
+	tv_main:add(tabs.settings)
 	tv_main:add(tabs.credits)
 
 	tv_main:set_global_event_handler(main_event_handler)
 	tv_main:set_fixed_size(false)
 
-	if PLATFORM ~= "Android" then
-		tv_main:set_tab(core.setting_get("maintab_LAST"))
+	if menustyle ~= "simple" then
+		tv_main:set_tab(core.settings:get("maintab_LAST"))
 	end
 	ui.set_default("maintab")
 	tv_main:show()
-
-	-- Create modstore ui
-	if PLATFORM == "Android" then
-		modstore.init({x = 12, y = 6}, 3, 2)
-	else
-		modstore.init({x = 12, y = 8}, 4, 3)
-	end
 
 	ui.update()
 
@@ -167,4 +155,3 @@ local function init_globals()
 end
 
 init_globals()
-

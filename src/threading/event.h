@@ -23,22 +23,9 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 */
 
-#ifndef THREADING_EVENT_H
-#define THREADING_EVENT_H
+#pragma once
 
-#if __cplusplus >= 201103L
-	#include <condition_variable>
-	#include "threading/mutex.h"
-	#include "threading/mutex_auto_lock.h"
-#elif defined(_WIN32)
-	#ifndef WIN32_LEAN_AND_MEAN
-		#define WIN32_LEAN_AND_MEAN
-	#endif
-	#include <windows.h>
-#else
-	#include <pthread.h>
-#endif
-
+#include <condition_variable>
 
 /** A syncronization primitive that will wake up one waiting thread when signaled.
  * Calling @c signal() multiple times before a waiting thread has had a chance
@@ -46,27 +33,14 @@ DEALINGS IN THE SOFTWARE.
  * are waiting on the event when it is signaled, the next call to @c wait()
  * will return (almost) immediately.
  */
-class Event {
+class Event
+{
 public:
-	Event();
-#if __cplusplus < 201103L
-	~Event();
-#endif
 	void wait();
 	void signal();
 
 private:
-#if __cplusplus >= 201103L
 	std::condition_variable cv;
-	Mutex mutex;
-	bool notified;
-#elif defined(_WIN32)
-	HANDLE event;
-#else
-	pthread_cond_t cv;
-	pthread_mutex_t mutex;
-	bool notified;
-#endif
+	std::mutex mutex;
+	bool notified = false;
 };
-
-#endif

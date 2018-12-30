@@ -17,26 +17,27 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef INVENTORY_HEADER
-#define INVENTORY_HEADER
+#pragma once
 
-#include "debug.h"
 #include "itemdef.h"
 #include "irrlichttypes.h"
+#include "itemstackmetadata.h"
 #include <istream>
 #include <ostream>
 #include <string>
 #include <vector>
+#include <cassert>
 
 struct ToolCapabilities;
 
 struct ItemStack
 {
-	ItemStack(): name(""), count(0), wear(0), metadata("") {}
-	ItemStack(std::string name_, u16 count_,
-			u16 wear, std::string metadata_,
-			IItemDefManager *itemdef);
-	~ItemStack() {}
+	ItemStack() = default;
+
+	ItemStack(const std::string &name_, u16 count_,
+			u16 wear, IItemDefManager *itemdef);
+
+	~ItemStack() = default;
 
 	// Serialization
 	void serialize(std::ostream &os) const;
@@ -61,7 +62,7 @@ struct ItemStack
 		name = "";
 		count = 0;
 		wear = 0;
-		metadata = "";
+		metadata.clear();
 	}
 
 	void add(u16 n)
@@ -80,15 +81,14 @@ struct ItemStack
 	// Maximum size of a stack
 	u16 getStackMax(IItemDefManager *itemdef) const
 	{
-		s16 max = itemdef->get(name).stack_max;
-		return (max >= 0) ? max : 0;
+		return itemdef->get(name).stack_max;
 	}
 
 	// Number of items that can be added to this stack
 	u16 freeSpace(IItemDefManager *itemdef) const
 	{
 		u16 max = getStackMax(itemdef);
-		if(count > max)
+		if (count >= max)
 			return 0;
 		return max - count;
 	}
@@ -111,12 +111,15 @@ struct ItemStack
 	const ToolCapabilities& getToolCapabilities(
 			IItemDefManager *itemdef) const
 	{
-		ToolCapabilities *cap;
-		cap = itemdef->get(name).tool_capabilities;
-		if(cap == NULL)
-			cap = itemdef->get("").tool_capabilities;
-		assert(cap != NULL);
-		return *cap;
+		const ToolCapabilities *item_cap =
+			itemdef->get(name).tool_capabilities;
+
+		if (item_cap == NULL)
+			// Fall back to the hand's tool capabilities
+			item_cap = itemdef->get("").tool_capabilities;
+
+		assert(item_cap != NULL);
+		return metadata.getToolCapabilities(*item_cap); // Check for override
 	}
 
 	// Wear out (only tools)
@@ -133,23 +136,20 @@ struct ItemStack
 				wear += amount;
 			return true;
 		}
-		else
-		{
-			return false;
-		}
+
+		return false;
 	}
 
 	// If possible, adds newitem to this item.
 	// If cannot be added at all, returns the item back.
 	// If can be added partly, decremented item is returned back.
 	// If can be added fully, empty item is returned.
-	ItemStack addItem(const ItemStack &newitem,
-			IItemDefManager *itemdef);
+	ItemStack addItem(ItemStack newitem, IItemDefManager *itemdef);
 
 	// Checks whether newitem could be added.
 	// If restitem is non-NULL, it receives the part of newitem that
 	// would be left over after adding.
-	bool itemFits(const ItemStack &newitem,
+	bool itemFits(ItemStack newitem,
 			ItemStack *restitem,  // may be NULL
 			IItemDefManager *itemdef) const;
 
@@ -164,17 +164,17 @@ struct ItemStack
 	/*
 		Properties
 	*/
-	std::string name;
-	u16 count;
-	u16 wear;
-	std::string metadata;
+	std::string name = "";
+	u16 count = 0;
+	u16 wear = 0;
+	ItemStackMetadata metadata;
 };
 
 class InventoryList
 {
 public:
-	InventoryList(std::string name, u32 size, IItemDefManager *itemdef);
-	~InventoryList();
+	InventoryList(const std::string &name, u32 size, IItemDefManager *itemdef);
+	~InventoryList() = default;
 	void clearItems();
 	void setSize(u32 newsize);
 	void setWidth(u32 newWidth);
@@ -223,9 +223,10 @@ public:
 	// Checks whether there is room for a given item
 	bool roomForItem(const ItemStack &item) const;
 
-	// Checks whether the given count of the given item name
+	// Checks whether the given count of the given item
 	// exists in this inventory list.
-	bool containsItem(const ItemStack &item) const;
+	// If match_meta is false, only the items' names are compared.
+	bool containsItem(const ItemStack &item, bool match_meta) const;
 
 	// Removes the given count of the given item name from
 	// this inventory list. Walks the list in reverse order.
@@ -239,9 +240,6 @@ public:
 	// Returns empty item if couldn't take any.
 	ItemStack takeItem(u32 i, u32 takecount);
 
-	// Similar to takeItem, but keeps the slot intact.
-	ItemStack peekItem(u32 i, u32 peekcount) const;
-
 	// Move an item to a different list (or a different stack in the same list)
 	// count is the maximum number of items to move (0 for everything)
 	// returns number of moved items
@@ -254,8 +252,9 @@ public:
 
 private:
 	std::vector<ItemStack> m_items;
-	u32 m_size, m_width;
 	std::string m_name;
+	u32 m_size;
+	u32 m_width = 0;
 	IItemDefManager *m_itemdef;
 };
 
@@ -310,8 +309,5 @@ private:
 
 	std::vector<InventoryList*> m_lists;
 	IItemDefManager *m_itemdef;
-	bool m_dirty;
+	bool m_dirty = false;
 };
-
-#endif
-

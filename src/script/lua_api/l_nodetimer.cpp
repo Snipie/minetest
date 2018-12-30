@@ -19,7 +19,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 #include "lua_api/l_nodetimer.h"
 #include "lua_api/l_internal.h"
-#include "environment.h"
+#include "serverenvironment.h"
 #include "map.h"
 
 
@@ -43,8 +43,8 @@ int NodeTimerRef::l_set(lua_State *L)
 	NodeTimerRef *o = checkobject(L, 1);
 	ServerEnvironment *env = o->m_env;
 	if(env == NULL) return 0;
-	f32 t = luaL_checknumber(L,2);
-	f32 e = luaL_checknumber(L,3);
+	f32 t = readParam<float>(L,2);
+	f32 e = readParam<float>(L,3);
 	env->getMap().setNodeTimer(NodeTimer(t, e, o->m_p));
 	return 0;
 }
@@ -55,7 +55,7 @@ int NodeTimerRef::l_start(lua_State *L)
 	NodeTimerRef *o = checkobject(L, 1);
 	ServerEnvironment *env = o->m_env;
 	if(env == NULL) return 0;
-	f32 t = luaL_checknumber(L,2);
+	f32 t = readParam<float>(L,2);
 	env->getMap().setNodeTimer(NodeTimer(t, 0, o->m_p));
 	return 0;
 }
@@ -113,10 +113,6 @@ NodeTimerRef::NodeTimerRef(v3s16 p, ServerEnvironment *env):
 {
 }
 
-NodeTimerRef::~NodeTimerRef()
-{
-}
-
 // Creates an NodeTimerRef and leaves it on top of stack
 // Not callable from Lua; all references are created on the C side.
 void NodeTimerRef::create(lua_State *L, v3s16 p, ServerEnvironment *env)
@@ -162,7 +158,7 @@ void NodeTimerRef::Register(lua_State *L)
 }
 
 const char NodeTimerRef::className[] = "NodeTimerRef";
-const luaL_reg NodeTimerRef::methods[] = {
+const luaL_Reg NodeTimerRef::methods[] = {
 	luamethod(NodeTimerRef, start),
 	luamethod(NodeTimerRef, set),
 	luamethod(NodeTimerRef, stop),

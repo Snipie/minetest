@@ -17,8 +17,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef S_SERVER_H_
-#define S_SERVER_H_
+#pragma once
 
 #include "cpp_api/s_base.h"
 #include <set>
@@ -30,6 +29,9 @@ public:
 	// Calls on_chat_message handlers
 	// Returns true if script handled message
 	bool on_chat_message(const std::string &name, const std::string &message);
+
+	// Calls when mods are loaded
+	void on_mods_loaded();
 
 	// Calls on_shutdown handlers
 	void on_shutdown();
@@ -46,7 +48,3 @@ private:
 	void getAuthHandler();
 	void readPrivileges(int index, std::set<std::string> &result);
 };
-
-
-
-#endif /* S_SERVER_H_ */

@@ -17,27 +17,39 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#ifndef L_BASE_H_
-#define L_BASE_H_
+#pragma once
 
 #include "common/c_types.h"
 #include "common/c_internal.h"
+#include "common/helper.h"
+#include "gamedef.h"
+#include <unordered_map>
 
 extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 }
 
+#ifndef SERVER
+class Client;
+#endif
+
 class ScriptApiBase;
 class Server;
 class Environment;
 class GUIEngine;
 
-class ModApiBase {
+class ModApiBase : protected LuaHelper {
 
 public:
 	static ScriptApiBase*   getScriptApiBase(lua_State *L);
 	static Server*          getServer(lua_State *L);
+	#ifndef SERVER
+	static Client*          getClient(lua_State *L);
+	#endif // !SERVER
+
+	static IGameDef*        getGameDef(lua_State *L);
+
 	static Environment*     getEnv(lua_State *L);
 	static GUIEngine*       getGuiEngine(lua_State *L);
 	// When we are not loading the mod, this function returns "."
@@ -57,9 +69,13 @@ public:
 
 	static bool registerFunction(lua_State *L,
 			const char* name,
-			lua_CFunction fct,
-			int top
-			);
-};
+			lua_CFunction func,
+			int top);
 
-#endif /* L_BASE_H_ */
+	static int l_deprecated_function(lua_State *L);
+	static void markAliasDeprecated(luaL_Reg *reg);
+private:
+	// <old_name> = { <new_name>, <new_function> }
+	static std::unordered_map<std::string, luaL_Reg> m_deprecated_wrappers;
+	static bool m_error_deprecated_calls;
+};
